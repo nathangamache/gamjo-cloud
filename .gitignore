@@ -1,0 +1,76 @@
+# ── Dependencies ──
+node_modules/
+.pnp/
+.pnp.js
+
+# ── Python ──
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# ── Frontend build output ──
+frontend/dist/
+frontend/build/
+
+# ── Environment & secrets ──
+.env
+.env.local
+.env.production
+.env.staging
+*.pem
+*.key
+
+# ── User uploads ──
+uploads/
+media/
+
+# ── Database ──
+*.db
+*.sqlite3
+*.sql.bak
+
+# ── Redis ──
+dump.rdb
+
+# ── Logs ──
+*.log
+logs/
+
+# ── OS files ──
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ── IDE / Editor ──
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.settings/
+.classpath
+
+# ── Testing ──
+coverage/
+.nyc_output/
+.pytest_cache/
+htmlcov/
+
+# ── Misc ──
+*.bak
+*.tmp
+*.temp
+.cache/
