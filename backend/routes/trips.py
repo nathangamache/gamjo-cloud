@@ -308,9 +308,7 @@ async def set_day_title(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Set or update a day title for a specific date. Admin only."""
-    if not await is_admin(trip_id, user, db):
-        raise HTTPException(403, "Admin only")
+    """Set or update a day title for a specific date. Any trip member."""
     trip = await get_trip_for_user(trip_id, user, db)
     data = await request.json()
     date = data.get("date")

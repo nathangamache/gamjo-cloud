@@ -41,6 +41,7 @@ def serialize_expense(exp: Expense) -> dict:
         "has_receipt": bool(getattr(exp, 'receipt_url', None)),
         "group_ids": group_ids,
         "created_at": str(exp.created_at) if hasattr(exp, 'created_at') and exp.created_at else None,
+        "created_by": str(exp.created_by) if hasattr(exp, 'created_by') and exp.created_by else None,
     }
 
 
@@ -84,6 +85,8 @@ async def create_expense(
     )
     if hasattr(expense, 'notes'):
         expense.notes = data.get("notes")
+    if hasattr(expense, 'created_by'):
+        expense.created_by = user.id
     
     db.add(expense)
     await db.flush()
@@ -143,7 +146,8 @@ async def update_expense(
         raise HTTPException(404, "Expense not found")
 
     admin = await is_admin(trip_id, user, db)
-    if not admin and expense.paid_by != user.id:
+    created_by = getattr(expense, 'created_by', None)
+    if not admin and expense.paid_by != user.id and created_by != user.id:
         raise HTTPException(403, "Only admins or the creator can edit expenses")
 
     data = await request.json()
@@ -196,9 +200,10 @@ async def delete_expense(
     if not expense:
         raise HTTPException(404, "Expense not found")
     
-    # Check permission: admin or creator
+    # Check permission: admin, payer, or creator
     admin = await is_admin(trip_id, user, db)
-    if not admin and expense.paid_by != user.id:
+    created_by = getattr(expense, 'created_by', None)
+    if not admin and expense.paid_by != user.id and created_by != user.id:
         raise HTTPException(403, "Only admins or the creator can delete expenses")
     
     # Delete splits first

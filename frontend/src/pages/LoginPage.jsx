@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Mail } from '../components/Icons';
+import { msg } from '../utils/helpers';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -29,6 +30,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (step === 'code') setTimeout(() => inputRefs.current[0]?.focus(), 100);
+    if (step === 'manual') setTimeout(() => inputRefs.current[0]?.focus(), 200);
   }, [step]);
 
   const handleCodeChange = (idx, val) => {
@@ -94,7 +96,7 @@ export default function LoginPage() {
       </div>
       <div className="login-mobile-brand" style={{ textAlign: 'center', marginBottom: 36 }}>
         <div style={{ fontFamily: 'var(--font-serif)', fontSize: 36, fontWeight: 400, color: 'var(--primary)', letterSpacing: -1 }}>Gamjo</div>
-        <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>plan the fun. split the tab.</div>
+        <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>{msg('login.taglines')}</div>
       </div>
       <div className="login-card">
         {step === 'email' && (
@@ -108,6 +110,9 @@ export default function LoginPage() {
             </div>
             <button type="submit" className="btn btn-primary" disabled={sending}>
               {sending ? 'Carrier pigeon dispatched...' : <><Send size={15} /> Send login code</>}
+            </button>
+            <button type="button" className="btn btn-secondary" style={{ marginTop: 8, fontSize: 13 }} onClick={() => { setError(''); setStep('manual'); }}>
+              I already have a code
             </button>
           </form>
         )}
@@ -134,6 +139,27 @@ export default function LoginPage() {
           <div style={{ textAlign: 'center', padding: '16px 0' }}>
             <div style={{ fontSize: 32, marginBottom: 8, color: 'var(--sage)' }}>&#10003;</div>
             <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--sage)' }}>You're in!</div>
+          </div>
+        )}
+        {step === 'manual' && (
+          <div>
+            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, marginBottom: 4 }}>Enter your code</div>
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 20 }}>Enter the email you were invited with and the 6-digit code from your inbox.</div>
+            <div className="form-group" style={{ marginBottom: 16 }}>
+              <label className="label">Email address</label>
+              <input className="form-input" type="email" placeholder="your@email.com" value={email} onChange={e => { setEmail(e.target.value); setError(''); }} autoComplete="email" autoFocus />
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 8 }} onPaste={handlePaste}>
+              {code.map((digit, idx) => (
+                <input key={idx} ref={el => inputRefs.current[idx] = el} type="text" inputMode="numeric" maxLength={1} value={digit}
+                  onChange={e => handleCodeChange(idx, e.target.value)} onKeyDown={e => handleCodeKeyDown(idx, e)} onFocus={e => e.target.select()}
+                  style={{ ...codeInputStyle, borderColor: digit ? 'var(--primary)' : error ? 'var(--danger)' : 'var(--border)' }} />
+              ))}
+            </div>
+            {error && <div style={{ fontSize: 13, color: 'var(--danger)', textAlign: 'center', marginTop: 8, marginBottom: 8 }}>{error}</div>}
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 20 }}>
+              <button className="btn btn-secondary" style={{ fontSize: 13, padding: '10px 16px' }} onClick={() => { setStep('email'); setError(''); setCode(['', '', '', '', '', '']); }}>Back</button>
+            </div>
           </div>
         )}
       </div>

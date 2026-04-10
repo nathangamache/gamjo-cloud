@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Plus, Receipt, Dollar, Trash, Edit, X, Check, Image, Users } from '../components/Icons';
-import { Sheet, Toast, useConfirm, EmptyState, LoadingButton, WaveDivider, SkeletonExpenseList } from '../components/Shared';
+import { Sheet, Toast, useConfirm, EmptyState, LoadingButton, SkeletonExpenseList } from '../components/Shared';
 import { api } from '../utils/api';
-import { formatDate, formatMoney, formatPct, getTripStatus, groupBy } from '../utils/helpers';
+import { formatDate, formatMoney, formatPct, getTripStatus, msg } from '../utils/helpers';
 import { Avatar, useApp } from '../App';
 
 const CATEGORIES = ['Food & Drink', 'Activities', 'Gas & Transport', 'Groceries', 'Supplies', 'Lodging', 'Other'];
@@ -29,7 +29,7 @@ export default function ExpensesPage({ trip, user, members, groups: propGroups, 
   const [form, setForm] = useState(defaultForm);
   const [editForm, setEditForm] = useState({ title: '', amount: '', paid_by: '', date: '', notes: '', category: '', group_ids: [] });
 
-  const showToast = (msg, type = 'info') => { setToast({ msg, type }); setTimeout(() => setToast(null), 2500); };
+  const showToast = (text, type = 'info') => { setToast({ msg: text, type }); setTimeout(() => setToast(null), 2500); };
 
   useEffect(() => { setForm(f => ({ ...f, group_ids: groups.map(g => g.id), paid_by: f.paid_by || user?.id || (members[0]?.id) || '' })); }, [groups, members, user?.id]);
 
@@ -122,14 +122,14 @@ export default function ExpensesPage({ trip, user, members, groups: propGroups, 
       }
       if (refreshExpenses) await refreshExpenses();
       setForm(defaultForm()); setReceiptFile(null); setShowAdd(false);
-      showToast('Ka-ching! Added.', 'success');
+      showToast(msg('toasts.expenseAdded', {}, true), 'success');
     } catch { showToast('Failed to add expense', 'error'); }
     setSubmitting(false);
   };
 
   // C1/A5: Edit expense
   const openEdit = (e) => {
-    if (!isAdmin && e.paid_by !== user?.id) return;
+    if (!isAdmin && e.paid_by !== user?.id && e.created_by !== user?.id) return;
     setShowEdit(e);
     setEditForm({ title: e.title, amount: String(e.amount || ''), paid_by: e.paid_by, date: e.date || '', notes: e.notes || '', category: e.category || '', group_ids: e.group_ids || groups.map(g => g.id) });
   };
@@ -140,14 +140,14 @@ export default function ExpensesPage({ trip, user, members, groups: propGroups, 
       await api.put(`/api/trips/${trip.id}/expenses/${showEdit.id}`, { ...editForm, amount: parseFloat(editForm.amount) });
       if (refreshExpenses) await refreshExpenses();
       setShowEdit(null);
-      showToast('Updated!', 'success');
+      showToast(msg('toasts.expenseUpdated', {}, true), 'success');
     } catch { showToast('Failed to update', 'error'); }
     setSubmitting(false);
   };
 
   const handleDelete = async (id) => {
-    if (!await confirm({ title: 'Delete this expense?', message: "The tab doesn't lie, but we can make it disappear.", confirmText: 'Delete it', danger: true })) return;
-    try { await api.delete(`/api/trips/${trip.id}/expenses/${id}`); setExpenses(prev => prev.filter(e => e.id !== id)); showToast('Poof. Never happened.', 'success'); } catch { showToast('Failed to delete', 'error'); }
+    if (!await confirm({ title: msg('confirms.deleteExpense.titles', {}, true), message: msg('confirms.deleteExpense.messages', {}, true), confirmText: msg('confirms.deleteExpense.confirmText', {}, true), danger: true })) return;
+    try { await api.delete(`/api/trips/${trip.id}/expenses/${id}`); setExpenses(prev => prev.filter(e => e.id !== id)); showToast(msg('toasts.expenseDeleted', {}, true), 'success'); } catch { showToast('Failed to delete', 'error'); }
   };
 
   // A7: Export CSV
@@ -177,7 +177,7 @@ export default function ExpensesPage({ trip, user, members, groups: propGroups, 
 
   const toggleGroup = (gid) => setForm(f => ({ ...f, group_ids: f.group_ids.includes(gid) ? f.group_ids.filter(x => x !== gid) : [...f.group_ids, gid] }));
   const toggleEditGroup = (gid) => setEditForm(f => ({ ...f, group_ids: f.group_ids.includes(gid) ? f.group_ids.filter(x => x !== gid) : [...f.group_ids, gid] }));
-  const tabNames = ['All', 'My receipts', 'My group', 'Breakdown'];
+  const tabNames = ['All', 'My receipts', 'My group'];
 
   // C6: displayExpenses filters properly for all three tabs
   const displayExpenses = tab === 1 ? myExpenses : tab === 2 ? myGroupExpenses : expenses;
@@ -188,7 +188,7 @@ export default function ExpensesPage({ trip, user, members, groups: propGroups, 
   const ExpenseRow = ({ e }) => {
     const payer = getUser(e.paid_by);
     return (
-    <div className="expense-row" style={{ cursor: (isAdmin || e.paid_by === user?.id) ? 'pointer' : undefined }} onClick={() => openEdit(e)}>
+    <div className="expense-row" style={{ cursor: (isAdmin || e.paid_by === user?.id || e.created_by === user?.id) ? 'pointer' : undefined }} onClick={() => openEdit(e)}>
       <div style={{ flexShrink: 0 }}>
         <Avatar user={payer} size="sm" />
       </div>
@@ -202,14 +202,14 @@ export default function ExpensesPage({ trip, user, members, groups: propGroups, 
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <span style={{ fontWeight: 600, fontSize: 15, color: 'var(--warm)' }}>{formatMoney(e.amount)}</span>
-        {(isAdmin || e.paid_by === user?.id) && <button className="icon-btn" onClick={e2 => { e2.stopPropagation(); handleDelete(e.id); }} aria-label="Delete expense"><Trash size={14} color="var(--text-muted)" /></button>}
+        {(isAdmin || e.paid_by === user?.id || e.created_by === user?.id) && <button className="icon-btn" onClick={e2 => { e2.stopPropagation(); handleDelete(e.id); }} aria-label="Delete expense"><Trash size={14} color="var(--text-muted)" /></button>}
       </div>
     </div>
     );
   };
 
   return (
-    <div>
+    <div className="page-expenses">
       {!isDesktop && <div className="topbar"><span className="topbar-title">Expenses</span><button className="btn-add" onClick={() => setShowAdd(true)}><Plus size={13} /> Add</button></div>}
       {isDesktop && <div className="desk-header"><div className="desk-header-title">Expenses</div><div style={{ display: 'flex', gap: 8 }}>{isAdmin && <button className="btn-add" style={{ background: 'var(--surface)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }} onClick={handleExport}>Export CSV</button>}<button className="btn-add" onClick={() => setShowAdd(true)}><Plus size={13} /> Add expense</button></div></div>}
 
@@ -223,16 +223,16 @@ export default function ExpensesPage({ trip, user, members, groups: propGroups, 
                 <table className="data-table">
                   <thead><tr><th>Expense</th><th>Paid by</th><th>Date</th><th style={{ textAlign: 'right' }}>Amount</th><th></th></tr></thead>
                   <tbody>{displayExpenses.map(e => (
-                    <tr key={e.id} style={{ cursor: (isAdmin || e.paid_by === user?.id) ? 'pointer' : undefined }} onClick={() => openEdit(e)}>
+                    <tr key={e.id} style={{ cursor: (isAdmin || e.paid_by === user?.id || e.created_by === user?.id) ? 'pointer' : undefined }} onClick={() => openEdit(e)}>
                       <td><div className="flex items-center gap-md"><div className={`expense-icon ${e.has_receipt ? 'receipt' : 'manual'}`} style={{ width: 32, height: 32 }}>{e.has_receipt ? <Receipt size={14} /> : <Dollar size={14} />}</div><div>{e.title}{e.notes && <div style={{ fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic' }}>{e.notes.slice(0, 40)}</div>}</div></div></td>
                       <td style={{ color: 'var(--text-secondary)' }}>{getName(e.paid_by)}</td>
                       <td style={{ color: 'var(--text-secondary)' }}>{formatDate(e.date)}</td>
                       <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--warm)' }}>{formatMoney(e.amount)}</td>
-                      <td onClick={e2 => e2.stopPropagation()}><div style={{ display: 'flex', gap: 4 }}>{e.has_receipt && <button onClick={() => setShowReceipt(e)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}><Image size={14} color="var(--primary)" /></button>}{(isAdmin || e.paid_by === user?.id) && <button onClick={() => handleDelete(e.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}><Trash size={14} color="var(--text-muted)" /></button>}</div></td>
+                      <td onClick={e2 => e2.stopPropagation()}><div style={{ display: 'flex', gap: 4 }}>{e.has_receipt && <button onClick={() => setShowReceipt(e)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}><Image size={14} color="var(--primary)" /></button>}{(isAdmin || e.paid_by === user?.id || e.created_by === user?.id) && <button onClick={() => handleDelete(e.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}><Trash size={14} color="var(--text-muted)" /></button>}</div></td>
                     </tr>
                   ))}</tbody>
                 </table>
-                {!dataLoaded && expenses.length === 0 ? <div style={{ padding: 16 }}><SkeletonExpenseList count={4} /></div> : displayExpenses.length === 0 && <EmptyState type="expenses" title="Nobody's spent a dime yet" message="Give it time. Someone's gonna buy a round." />}
+                {!dataLoaded && expenses.length === 0 ? <div style={{ padding: 16 }}><SkeletonExpenseList count={4} /></div> : displayExpenses.length === 0 && <EmptyState type="expenses" title={msg('emptyStates.expenses.titles')} message={msg('emptyStates.expenses.messages')} />}
               </div>
             </div>
             <div className="desk-side-col">
@@ -248,42 +248,9 @@ export default function ExpensesPage({ trip, user, members, groups: propGroups, 
             {tab === 0 && <div className="summary-card blue mb-md"><div className="summary-card-label">Trip total</div><div className="summary-card-value">{formatMoney(total)}</div><div className="summary-card-meta">{expenses.length} expenses across {groups.length} groups</div><div className="summary-card-action" onClick={() => setShowSplits(true)}>Preview group splits</div></div>}
             {tab === 1 && <div className="stat-grid mb-md"><div className="stat-card"><div className="stat-value">{formatMoney(myTotal)}</div><div className="stat-label">my total paid</div></div><div className="stat-card"><div className="stat-value">{myExpenses.length}</div><div className="stat-label">my receipts</div></div></div>}
             {tab === 2 && myGroup && <div className="summary-card teal mb-md"><div className="summary-card-label">{myGroup.name}</div><div className="summary-card-value" style={{ fontSize: 26 }}>{formatMoney(myGroupTotal)}</div><div className="summary-card-meta">Total paid by group &middot; {formatPct(myGroup.percentage)} share</div></div>}
-            {/* Breakdown tab: per-person + per-day */}
-            {tab === 3 && (
-              <>
-                <div className="card mb-md">
-                  <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>Spending by person</div>
-                  {perPerson.length === 0 && <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>No expenses yet</div>}
-                  {perPerson.map(p => (
-                    <div key={p.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--surface-alt)' }}>
-                      <div>
-                        <div style={{ fontWeight: 500, fontSize: 14 }}>{p.name}</div>
-                        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{p.count} expense{p.count !== 1 ? 's' : ''}</div>
-                      </div>
-                      <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--warm)' }}>{formatMoney(p.total)}</div>
-                    </div>
-                  ))}
-                </div>
-                {perDay.length > 0 && (
-                  <div className="card mb-md">
-                    <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>Spending by day</div>
-                    {perDay.map(([date, amt]) => (
-                      <div key={date} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--surface-alt)' }}>
-                        <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>{date === 'No date' ? date : formatDate(date)}</span>
-                        <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--warm)' }}>{formatMoney(amt)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-            {/* A7: Export on mobile */}
-            {tab === 0 && isAdmin && expenses.length > 0 && <button className="btn btn-secondary mb-md" style={{ fontSize: 13, padding: '8px 14px' }} onClick={handleExport}>Export expenses to CSV</button>}
-            {tab !== 3 && (
-              <div className="card" style={{ padding: '0 16px' }}>
-                {!dataLoaded && expenses.length === 0 ? <SkeletonExpenseList count={4} /> : displayExpenses.length === 0 ? <EmptyState type="expenses" title="Nobody's spent a dime yet" message="Give it time. Someone's gonna buy a round." /> : displayExpenses.map(e => <ExpenseRow key={e.id} e={e} />)}
-              </div>
-            )}
+            <div className="card" style={{ padding: '0 16px' }}>
+              {!dataLoaded && expenses.length === 0 ? <SkeletonExpenseList count={4} /> : displayExpenses.length === 0 ? <EmptyState type="expenses" title={msg('emptyStates.expenses.titles')} message={msg('emptyStates.expenses.messages')} /> : displayExpenses.map(e => <ExpenseRow key={e.id} e={e} />)}
+            </div>
           </>
         )}
       </div>
@@ -291,15 +258,15 @@ export default function ExpensesPage({ trip, user, members, groups: propGroups, 
       {/* Add Expense Sheet */}
       {showAdd && (
         <Sheet onClose={() => { setShowAdd(false); setReceiptFile(null); }} title="Who's paying?">
-          <div className="form-group"><label className="label">What was it for?</label><input className="form-input" placeholder="e.g. Booze run, Dinner, Boat gas" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} autoFocus /></div>
-          <div className="form-group"><label className="label">Amount</label><input className="form-input" type="number" step="0.01" inputMode="decimal" placeholder="How much damage?" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} /></div>
+          <div className="form-group"><label className="label">What was it for?</label><input className="form-input" placeholder={msg("placeholders.expenseTitle")} value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} autoFocus /></div>
+          <div className="form-group"><label className="label">Amount</label><input className="form-input" type="number" step="0.01" inputMode="decimal" placeholder={msg("placeholders.expenseNotes")} value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} /></div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <div className="form-group" style={{ flex: 1, minWidth: 140 }}><label className="label">Who paid?</label><select className="form-input" value={form.paid_by} onChange={e => setForm(f => ({ ...f, paid_by: e.target.value }))}>{members.map(m => <option key={m.id || m.user_id} value={m.id || m.user_id}>{m.name}</option>)}</select></div>
             <div className="form-group" style={{ flex: 1, minWidth: 140 }}><label className="label">Category</label><select className="form-input" value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}><option value="">Select...</option>{CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
           </div>
-          <div className="form-group"><label className="label">Date</label><input className="form-input" type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} /></div>
+          <div className="form-group"><label className="label">Date</label><input className="form-input" type="date" min={trip?.start_date || ''} max={trip?.end_date || ''} value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} /></div>
           <div className="form-group"><label className="label">Split between</label><div className="pill-group">{groups.map(g => <button key={g.id} className={`pill ${form.group_ids.includes(g.id) ? 'active' : ''}`} onClick={() => toggleGroup(g.id)}>{g.name} ({formatPct(g.percentage)})</button>)}</div></div>
-          <div className="form-group"><label className="label">Notes (optional)</label><input className="form-input" placeholder="Be honest..." value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} /></div>
+          <div className="form-group"><label className="label">Notes (optional)</label><input className="form-input" placeholder={msg("placeholders.expenseNotes")} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} /></div>
           <div className="form-group">
             <label className="label">Receipt photo</label>
             <input ref={receiptRef} type="file" accept="image/*" onChange={e => setReceiptFile(e.target.files?.[0] || null)} style={{ display: 'none' }} />
@@ -320,13 +287,13 @@ export default function ExpensesPage({ trip, user, members, groups: propGroups, 
             <div className="form-group" style={{ flex: 1, minWidth: 140 }}><label className="label">Who paid?</label><select className="form-input" value={editForm.paid_by} onChange={e => setEditForm(f => ({ ...f, paid_by: e.target.value }))}>{members.map(m => <option key={m.id || m.user_id} value={m.id || m.user_id}>{m.name}</option>)}</select></div>
             <div className="form-group" style={{ flex: 1, minWidth: 140 }}><label className="label">Category</label><select className="form-input" value={editForm.category} onChange={e => setEditForm(f => ({ ...f, category: e.target.value }))}><option value="">Select...</option>{CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
           </div>
-          <div className="form-group"><label className="label">Date</label><input className="form-input" type="date" value={editForm.date} onChange={e => setEditForm(f => ({ ...f, date: e.target.value }))} /></div>
+          <div className="form-group"><label className="label">Date</label><input className="form-input" type="date" min={trip?.start_date || ''} max={trip?.end_date || ''} value={editForm.date} onChange={e => setEditForm(f => ({ ...f, date: e.target.value }))} /></div>
           <div className="form-group"><label className="label">Split between</label><div className="pill-group">{groups.map(g => <button key={g.id} className={`pill ${editForm.group_ids.includes(g.id) ? 'active' : ''}`} onClick={() => toggleEditGroup(g.id)}>{g.name} ({formatPct(g.percentage)})</button>)}</div></div>
-          <div className="form-group"><label className="label">Notes</label><input className="form-input" value={editForm.notes} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} placeholder="Be honest..." /></div>
+          <div className="form-group"><label className="label">Notes</label><input className="form-input" value={editForm.notes} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} placeholder={msg("placeholders.expenseNotes")} /></div>
           {showEdit.receipt_url && <div className="form-group"><label className="label">Receipt</label><div style={{ borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border)', cursor: 'pointer' }} onClick={() => setShowReceipt(showEdit)}><img src={showEdit.receipt_url} alt="Receipt" style={{ width: '100%', maxHeight: 200, objectFit: 'cover' }} /></div></div>}
           <div style={{ display: 'flex', gap: 8 }}>
             <LoadingButton loading={submitting} onClick={handleSaveEdit} style={{ flex: 1 }}><Check size={14} /> Save changes</LoadingButton>
-            {(isAdmin || showEdit.paid_by === user?.id) && <button className="btn btn-danger" style={{ flex: 0, width: 'auto', padding: '15px 18px' }} onClick={() => { handleDelete(showEdit.id); setShowEdit(null); }} aria-label="Delete expense"><Trash size={16} /></button>}
+            {(isAdmin || showEdit.paid_by === user?.id || showEdit.created_by === user?.id) && <button className="btn btn-danger" style={{ flex: 0, width: 'auto', padding: '15px 18px' }} onClick={() => { handleDelete(showEdit.id); setShowEdit(null); }} aria-label="Delete expense"><Trash size={16} /></button>}
           </div>
         </Sheet>
       )}
@@ -356,7 +323,7 @@ export default function ExpensesPage({ trip, user, members, groups: propGroups, 
           {/* S1: Settlement transfers */}
           {settlements.length > 0 && (
             <div style={{ marginTop: 16 }}>
-              <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 10 }}>To settle up</div>
+              <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 10 }}>{msg('settlements.headers')}</div>
               {settlements.map((s, i) => {
                 const fromGroup = balances.find(b => b.name === s.from);
                 const toGroup = balances.find(b => b.name === s.to);

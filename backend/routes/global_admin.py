@@ -3,7 +3,7 @@ Add to main.py: from routes import global_admin
 app.include_router(global_admin.router, prefix="/api")
 """
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from uuid import UUID, uuid4
@@ -143,6 +143,17 @@ async def delete_user(
     target = result.scalar_one_or_none()
     if not target:
         raise HTTPException(404, "User not found")
+
+    uid = str(user_id)
+
+    # Delete sessions first (FK constraint)
+    await db.execute(text("DELETE FROM sessions WHERE user_id = :uid"), {"uid": uid})
+
+    # Delete activity log entries
+    await db.execute(text("DELETE FROM activity_log WHERE user_id = :uid"), {"uid": uid})
+
+    # Delete itinerary votes
+    await db.execute(text("DELETE FROM itinerary_votes WHERE user_id = :uid"), {"uid": uid})
 
     # Remove from all trips
     from models.models import GroupMember, ExpenseGroup

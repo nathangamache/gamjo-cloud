@@ -3,7 +3,7 @@ import { Home, Dollar, Camera, User, Shield, Globe, LogOut, Calendar } from './c
 import { useAuth } from './hooks/useAuth';
 import { useConfirm } from './components/Shared';
 import { api } from './utils/api';
-import { getTripStatus } from './utils/helpers';
+import { getTripStatus, msg } from './utils/helpers';
 import LoginPage from './pages/LoginPage';
 import VerifyPage from './pages/VerifyPage';
 import NotFoundPage from './pages/NotFoundPage';
@@ -135,16 +135,16 @@ function DesktopSidebar({ tab, navigate, user, isAdmin, isGlobalAdmin, onLogout,
         {inTrip && (
           <>
             {isAdmin && (
-              <button className={`sidebar-nav-item ${tab === 'admin' ? 'active' : ''}`} style={{ padding: '8px 0' }} onClick={() => navigate('admin')}>
+              <button className={`sidebar-nav-item ${tab === 'admin' ? 'active' : ''}`} onClick={() => navigate('admin')}>
                 <Shield size={18} /><span style={{ fontSize: 13 }}>Trip settings</span>
               </button>
             )}
-            <button className={`sidebar-nav-item ${tab === 'vacations' ? 'active' : ''}`} style={{ padding: '8px 0' }} onClick={() => navigate('vacations')}>
+            <button className={`sidebar-nav-item ${tab === 'vacations' ? 'active' : ''}`} onClick={() => navigate('vacations')}>
               <Globe size={18} /><span style={{ fontSize: 13 }}>All vacations</span>
             </button>
           </>
         )}
-        <button className="sidebar-nav-item" style={{ padding: '8px 0', color: 'var(--danger)' }} onClick={onLogout}>
+        <button className="sidebar-nav-item" style={{ color: 'var(--danger)' }} onClick={onLogout}>
           <LogOut size={18} /><span style={{ fontSize: 13 }}>Sign out</span>
         </button>
       </div>
@@ -219,7 +219,7 @@ export default function App() {
     window.scrollTo(0, 0);
   }, [loadTripData]);
   const handleLogout = useCallback(async () => {
-    if (!await confirm({ title: 'Sign out?', message: 'You\'ll need a new login code to get back in.', confirmText: 'Sign out', danger: true })) return;
+    if (!await confirm({ title: msg('confirms.signOut.titles', {}, true), message: msg('confirms.signOut.messages', {}, true), confirmText: msg('confirms.signOut.confirmText', {}, true), danger: true })) return;
     try { await logout(); } catch {}
   }, [logout, confirm]);
   useEffect(() => {
@@ -249,7 +249,7 @@ export default function App() {
       setDataLoaded(true);
     }).catch(err => { console.error('Failed to fetch trips:', err); setDataLoaded(true); });
   }, [user]);
-  if (loading || (!dataLoaded && user)) return <div className="app" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}><div className="heading-serif lg" style={{ color: 'var(--primary)' }}>Gamjo</div></div>;
+  if (loading) return <div className="app" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}><div className="heading-serif lg" style={{ color: 'var(--primary)' }}>Gamjo</div></div>;
   if (window.location.pathname === '/verify') return <VerifyPage />;
   if (!user) {
     const p = window.location.pathname;

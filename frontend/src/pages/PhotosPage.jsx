@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Plus, Upload, Camera, Image, Edit, Trash, X, ChevronLeft, ChevronRight } from '../components/Icons';
 import { Sheet, Toast, useConfirm, EmptyState, SkeletonPhotoGrid } from '../components/Shared';
 import { api } from '../utils/api';
-import { formatDate, groupBy } from '../utils/helpers';
+import { formatDate, groupBy, msg, t } from '../utils/helpers';
 import { useApp } from '../App';
 
 export default function PhotosPage({ trip, user, navigate, photos: propPhotos, setPhotos: propSetPhotos, refreshMedia }) {
@@ -17,7 +17,7 @@ export default function PhotosPage({ trip, user, navigate, photos: propPhotos, s
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({ done: 0, total: 0 });
   const fileRef = useRef(null);
-  const showToast = (msg, type = 'info') => { setToast({ msg, type }); setTimeout(() => setToast(null), 2500); };
+  const showToast = (text, type = 'info') => { setToast({ msg: text, type }); setTimeout(() => setToast(null), 2500); };
   const confirm = useConfirm();
 
   const handleFileSelect = async (e) => {
@@ -33,7 +33,7 @@ export default function PhotosPage({ trip, user, navigate, photos: propPhotos, s
     }
     if (refreshMedia) await refreshMedia();
     setShowUpload(false); setUploading(false);
-    showToast(`${uploaded} photo${uploaded !== 1 ? 's' : ''} uploaded`, 'success');
+    showToast(msg('toasts.photoUploaded', { count: uploaded, s: uploaded !== 1 ? 's' : '', ies: uploaded !== 1 ? 'ies' : 'y' }, true), 'success');
     if (fileRef.current) fileRef.current.value = '';
   };
 
@@ -54,12 +54,12 @@ export default function PhotosPage({ trip, user, navigate, photos: propPhotos, s
   const grouped = groupBy(photos, p => p.date || 'Unknown');
 
   return (
-    <div>
+    <div className="page-photos">
       {!isDesktop && <div className="topbar"><span className="topbar-title">Photos</span><button className="btn-add" onClick={() => setShowUpload(true)}><Plus size={13} /> Upload</button></div>}
       {isDesktop && <div className="desk-header"><div className="desk-header-title">Photos</div><span style={{ fontSize: 13, color: 'var(--text-muted)', marginRight: 12 }}>{photos.length} photos</span><button className="btn-add" onClick={() => setShowUpload(true)}><Plus size={13} /> Upload</button></div>}
       <div style={{ padding: isDesktop ? '24px 32px' : '10px 20px' }}>
         {!dataLoaded && photos.length === 0 && <SkeletonPhotoGrid count={9} />}
-        {dataLoaded && photos.length === 0 && <EmptyState type="photos" title="Drop some memories in here" message="The good, the bad, and the embarrassing." action="Upload photos" onAction={() => setShowUpload(true)} />}
+        {dataLoaded && photos.length === 0 && <EmptyState type="photos" title={msg('emptyStates.photos.titles')} message={msg('emptyStates.photos.messages')} action="Upload photos" onAction={() => setShowUpload(true)} />}
         {isDesktop && photos.length > 0 ? (
           Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b)).map(([date, datePhotos]) => (
             <div key={date}><div className="label" style={{ color: 'var(--warm)', marginBottom: 10, marginTop: 14 }}>{formatDate(date)}</div>
@@ -67,7 +67,10 @@ export default function PhotosPage({ trip, user, navigate, photos: propPhotos, s
                 {datePhotos.map((p, i) => (
                   <div key={p.id} style={{ aspectRatio: 1, borderRadius: 12, background: p.url ? undefined : `hsl(${(p.id * 67 + i * 30) % 360}, 40%, 55%)`, overflow: 'hidden', position: 'relative', cursor: 'pointer' }} onClick={() => p.url && setViewingPhoto(p)}>
                     {p.url ? <img src={p.url} alt={p.caption} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.7)' }}><Image size={24} /></div>}
-                    {canEdit(p) && <button onClick={e => { e.stopPropagation(); startEdit(p); }} style={{ position: 'absolute', top: 8, right: 8, width: 28, height: 28, borderRadius: 8, background: 'rgba(0,0,0,.4)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Edit size={14} color="rgba(255,255,255,.9)" /></button>}
+                    {canEdit(p) && <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 4 }}>
+                      <button onClick={e => { e.stopPropagation(); startEdit(p); }} style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(0,0,0,.4)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Edit size={14} color="rgba(255,255,255,.9)" /></button>
+                      <button onClick={e => { e.stopPropagation(); handleDelete(p.id); }} style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(200,60,60,.5)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Trash size={14} color="rgba(255,255,255,.9)" /></button>
+                    </div>}
                   </div>))}
               </div></div>))
         ) : photos.length > 0 && (
@@ -77,7 +80,7 @@ export default function PhotosPage({ trip, user, navigate, photos: propPhotos, s
                 <div key={p.id} className="photo-item" style={{ cursor: p.url ? 'pointer' : undefined }} onClick={() => p.url && setViewingPhoto(p)}>
                   <div className="photo-thumb" style={{ background: p.url ? undefined : `hsl(${(p.id * 67) % 360}, 40%, 55%)` }}>{p.url ? <img src={p.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Image size={20} />}</div>
                   <div style={{ flex: 1 }}><div style={{ fontWeight: 500, fontSize: 14 }}>{p.caption || 'Untitled'}</div><div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{p.uploaded_by_name || 'Someone'} {p.location ? `\u00b7 ${p.location}` : ''}</div></div>
-                  {canEdit(p) && <button className="photo-edit-btn" onClick={e => { e.stopPropagation(); startEdit(p); }}><Edit size={14} /></button>}
+                  {canEdit(p) && <div style={{ display: 'flex', gap: 4 }}><button className="photo-edit-btn" onClick={e => { e.stopPropagation(); startEdit(p); }}><Edit size={14} /></button><button className="photo-edit-btn" onClick={e => { e.stopPropagation(); handleDelete(p.id); }}><Trash size={14} /></button></div>}
                 </div>))}</div>))
         )}
         {!isDesktop && photos.length > 0 && <button className="btn btn-secondary mt-md" onClick={() => navigate('gallery')}><Image size={15} /> View gallery grid</button>}

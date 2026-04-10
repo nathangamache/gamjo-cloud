@@ -313,3 +313,81 @@ export function SkeletonVacationList({ count = 3 }) {
     </>
   );
 }
+
+export function SkeletonProfile() {
+  return (
+    <div style={{ padding: '24px 20px' }}>
+      {/* Avatar area */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 20 }}>
+        <div className="skeleton" style={{ width: 72, height: 72, borderRadius: '50%' }} />
+        <SkeletonLine width={120} height={16} style={{ marginTop: 12 }} />
+        <SkeletonLine width={160} height={12} style={{ marginTop: 6 }} />
+      </div>
+      {/* Trip stats */}
+      <SkeletonLine width={100} height={16} style={{ marginBottom: 10 }} />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20 }}>
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="skeleton-card" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div className="skeleton" style={{ width: 36, height: 36, borderRadius: 10 }} />
+            <div>
+              <SkeletonLine width={60} height={16} style={{ marginBottom: 4 }} />
+              <SkeletonLine width={50} height={11} />
+            </div>
+          </div>
+        ))}
+      </div>
+      {/* Group section */}
+      <SkeletonLine width={80} height={16} style={{ marginBottom: 10 }} />
+      <div className="skeleton-card">
+        <SkeletonLine width="50%" height={14} style={{ marginBottom: 8 }} />
+        <SkeletonLine width="35%" height={12} style={{ marginBottom: 14 }} />
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0' }}>
+            <div className="skeleton" style={{ width: 32, height: 32, borderRadius: '50%' }} />
+            <SkeletonLine width={90} height={12} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function SkeletonAdmin() {
+  return (
+    <div style={{ padding: '16px 20px' }}>
+      {/* Section heading */}
+      <SkeletonLine width={80} height={16} style={{ marginBottom: 12 }} />
+      {/* Member list */}
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--surface-alt)' }}>
+          <div className="skeleton" style={{ width: 36, height: 36, borderRadius: '50%' }} />
+          <div style={{ flex: 1 }}>
+            <SkeletonLine width="45%" height={14} style={{ marginBottom: 4 }} />
+            <SkeletonLine width="60%" height={11} />
+          </div>
+          <SkeletonLine width={60} height={24} style={{ borderRadius: 12 }} />
+        </div>
+      ))}
+      {/* Groups section */}
+      <SkeletonLine width={110} height={16} style={{ marginTop: 24, marginBottom: 12 }} />
+      {Array.from({ length: 2 }).map((_, i) => (
+        <div key={i} className="skeleton-card" style={{ marginBottom: 8 }}>
+          <SkeletonLine width="40%" height={14} style={{ marginBottom: 6 }} />
+          <SkeletonLine width="25%" height={12} />
+        </div>
+      ))}
+      {/* Trip settings */}
+      <SkeletonLine width={100} height={16} style={{ marginTop: 24, marginBottom: 12 }} />
+      <div className="skeleton-card">
+        <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+          <SkeletonLine width="48%" height={38} style={{ borderRadius: 10 }} />
+          <SkeletonLine width="48%" height={38} style={{ borderRadius: 10 }} />
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <SkeletonLine width="48%" height={38} style={{ borderRadius: 10 }} />
+          <SkeletonLine width="48%" height={38} style={{ borderRadius: 10 }} />
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { Plus, Edit, Mail, Users, Trash, Vote, ChevronRight, Send, Camera, Check } from '../components/Icons';
-import { Sheet, Toast, useConfirm } from '../components/Shared';
+import { Sheet, Toast, useConfirm, SkeletonAdmin } from '../components/Shared';
 import { api } from '../utils/api';
 import { parseFraction, formatPct, pctToFractionStr, getTripStatusLabel, formatDate, formatTime12h } from '../utils/helpers';
 import { Avatar, useApp } from '../App';
 
 export default function AdminPage({ trip, members, groups: propGroups, setMembers, setGroups: setParentGroups, setTrip, navigate, initialTab, onTabChange }) {
-  const { isDesktop, groups: ctxGroups, expenses: ctxExpenses, itinerary: ctxItinerary, media: ctxMedia } = useApp();
+  const { isDesktop, groups: ctxGroups, expenses: ctxExpenses, itinerary: ctxItinerary, media: ctxMedia, dataLoaded } = useApp();
   const allExpenses = ctxExpenses || [];
   const allItinerary = ctxItinerary || [];
   const allMedia = ctxMedia || [];
@@ -27,6 +27,7 @@ export default function AdminPage({ trip, members, groups: propGroups, setMember
   const [inviteSearch, setInviteSearch] = useState('');
   const [inviteMode, setInviteMode] = useState('pick'); // 'pick' | 'new'
   const [toast, setToast] = useState(null);
+  const [emailMenu, setEmailMenu] = useState(null); // userId when open
   const [banners, setBanners] = useState({ desktop: [], mobile: [] });
   const desktopBannerRef = useRef(null);
   const mobileBannerRef = useRef(null);
@@ -102,8 +103,20 @@ export default function AdminPage({ trip, members, groups: propGroups, setMember
     } catch { showToast('Failed to send invite', 'error'); }
     setInviteEmail(''); setInviteName(''); setShowInvite(false);
   };
-  const handleSendLink = async (userId) => {
-    try { await api.post(`/api/admin/${trip.id}/resend-link`, { user_id: userId }); showToast('Login link sent', 'success'); } catch { showToast('Failed to send link', 'error'); }
+  const emailTypes = [
+    { key: 'login_code', label: 'Login code', desc: 'Sends a 6-digit login code' },
+    { key: 'trip_invite', label: 'Trip invite', desc: 'Notifies them about this trip' },
+    { key: 'welcome', label: 'Welcome email', desc: 'How-to-get-started guide' },
+  ];
+  const handleSendEmail = async (userId, emailType) => {
+    const member = members.find(m => (m.id || m.user_id) === userId);
+    const typeName = emailTypes.find(t => t.key === emailType)?.label || emailType;
+    if (!await confirm({ title: `Send ${typeName}?`, message: `Send a ${typeName.toLowerCase()} email to ${member?.name || member?.email || 'this user'}?`, confirmText: 'Send it' })) return;
+    setEmailMenu(null);
+    try {
+      await api.post(`/api/admin/${trip.id}/send-email`, { user_id: userId, email_type: emailType });
+      showToast(`${typeName} sent`, 'success');
+    } catch { showToast('Failed to send email', 'error'); }
   };
   const handleRemoveUser = async (userId) => {
     if (!await confirm({ title: 'Remove member?', message: 'Remove this person from the trip?', confirmText: 'Remove', danger: true })) return;
@@ -254,14 +267,6 @@ export default function AdminPage({ trip, members, groups: propGroups, setMember
       setTimeout(() => navigate('home'), 500);
     } catch { showToast('Failed to duplicate', 'error'); }
   };
-  // A4: Bulk send login links
-  const handleSendAllLinks = async () => {
-    if (!await confirm({ title: 'Rally the troops?', message: 'Send login codes to everyone on this trip.', confirmText: "Send 'em" })) return;
-    try {
-      const res = await api.post(`/api/admin/${trip.id}/send-all-links`);
-      showToast(`Sent ${res.data?.sent || 0} login links`, 'success');
-    } catch { showToast('Failed to send', 'error'); }
-  };
   const handleBannerUpload = async (e, bannerType) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -300,6 +305,57 @@ export default function AdminPage({ trip, members, groups: propGroups, setMember
     </span>
   );
 
+  const EmailMenuBtn = ({ userId }) => {
+    const isOpen = emailMenu === userId;
+    const btnRef = useRef(null);
+    const [dropUp, setDropUp] = useState(false);
+    const member = members.find(m => (m.id || m.user_id) === userId);
+    useEffect(() => {
+      if (isOpen && btnRef.current && isDesktop) {
+        const rect = btnRef.current.getBoundingClientRect();
+        const spaceBelow = window.innerHeight - rect.bottom;
+        setDropUp(spaceBelow < 160);
+      }
+    }, [isOpen]);
+
+    const menuContent = (
+      <>
+        {!isDesktop && <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', padding: '12px 14px 6px', borderBottom: '1px solid var(--surface-alt)' }}>Send email to {member?.name || 'user'}</div>}
+        {emailTypes.map(et => (
+          <div key={et.key} onClick={() => handleSendEmail(userId, et.key)} style={{ padding: '12px 14px', cursor: 'pointer', transition: 'background 0.1s', fontSize: 14 }}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-alt)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+            <div style={{ fontWeight: 500, color: 'var(--text)' }}>{et.label}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{et.desc}</div>
+          </div>
+        ))}
+        {!isDesktop && <div onClick={() => setEmailMenu(null)} style={{ padding: '12px 14px', cursor: 'pointer', textAlign: 'center', fontSize: 14, color: 'var(--text-muted)', borderTop: '1px solid var(--surface-alt)', marginTop: 4 }}>Cancel</div>}
+      </>
+    );
+
+    return (
+      <span ref={btnRef} style={{ position: 'relative', display: 'inline-block' }}>
+        <span onClick={() => setEmailMenu(isOpen ? null : userId)} style={{ padding: '6px 12px', borderRadius: 10, border: 'none', fontSize: 13, color: isOpen ? 'var(--primary)' : 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: 4, background: isOpen ? 'var(--primary-light)' : 'var(--surface)', cursor: 'pointer', boxShadow: '0 1px 4px rgba(140,120,100,0.08)' }}>
+          <Mail size={12} /> Email
+        </span>
+        {isOpen && (
+          <>
+            <div onClick={() => setEmailMenu(null)} style={{ position: 'fixed', inset: 0, zIndex: 49, background: isDesktop ? 'transparent' : 'rgba(0,0,0,0.3)' }} />
+            {isDesktop ? (
+              <div style={{ position: 'absolute', right: 0, background: 'var(--surface)', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-lg)', zIndex: 50, minWidth: 220, padding: '6px 0', border: '1px solid var(--border)', ...(dropUp ? { bottom: '100%', marginBottom: 4 } : { top: '100%', marginTop: 4 }) }}>
+                {menuContent}
+              </div>
+            ) : (
+              <div style={{ position: 'fixed', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', background: 'var(--surface)', borderRadius: 16, boxShadow: '0 12px 40px rgba(0,0,0,0.2)', zIndex: 50, width: 'min(300px, calc(100vw - 48px))', padding: '6px 0', overflow: 'hidden' }}>
+                {menuContent}
+              </div>
+            )}
+          </>
+        )}
+      </span>
+    );
+  };
+
   // Helper to get user's group name
   const getUserGroup = (uid) => {
     for (const g of groups) {
@@ -308,8 +364,10 @@ export default function AdminPage({ trip, members, groups: propGroups, setMember
     return null;
   };
 
+  if (!dataLoaded) return <div className="page-admin"><SkeletonAdmin /></div>;
+
   return (
-    <div>
+    <div className="page-admin">
       {!isDesktop && (
         <div style={{ display: 'flex', alignItems: 'center', padding: '12px 20px 8px' }}>
           <span style={{ fontSize: 18, fontWeight: 600, flex: 1 }}>Admin</span>
@@ -321,7 +379,6 @@ export default function AdminPage({ trip, members, groups: propGroups, setMember
           <div className="desk-header-title">Admin</div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn-add" onClick={openInvite}><Plus size={13} /> Invite</button>
-            <button className="btn-add" style={{ background: 'var(--surface)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }} onClick={handleSendAllLinks}><Send size={13} /> Send all links</button>
             <button className="btn-add" style={{ background: 'linear-gradient(135deg, var(--vote-bg), #FFF8ED)', color: 'var(--vote-text)', border: 'none', boxShadow: '0 1px 4px rgba(140,120,100,0.08)' }} onClick={() => setShowPushVote(true)}><Vote size={13} /> Push a vote</button>
           </div>
         </div>
@@ -415,7 +472,7 @@ export default function AdminPage({ trip, members, groups: propGroups, setMember
                     <td style={{ color: 'var(--text-secondary)' }}>{m.group_name || getUserGroup(m.id || m.user_id) || '-'}</td>
                     <td style={{ textAlign: 'right' }}><div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
                       <ActionBtn icon={Edit} label="Edit" onClick={() => openEditUser(m)} />
-                      <ActionBtn icon={Mail} label="Link" onClick={() => handleSendLink(m.id || m.user_id)} />
+                      <EmailMenuBtn userId={m.id || m.user_id} />
                       <ActionBtn icon={Trash} label="Remove" danger onClick={() => handleRemoveUser(m.id || m.user_id)} />
                     </div></td>
                   </tr>
@@ -436,7 +493,7 @@ export default function AdminPage({ trip, members, groups: propGroups, setMember
                     </div>
                   <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
                     <ActionBtn icon={Edit} label="Edit" onClick={() => openEditUser(m)} />
-                    <ActionBtn icon={Mail} label="Send link" onClick={() => handleSendLink(m.id || m.user_id)} />
+                    <EmailMenuBtn userId={m.id || m.user_id} />
                     <ActionBtn icon={Trash} label="Remove" danger onClick={() => handleRemoveUser(m.id || m.user_id)} />
                   </div>
                 </div>

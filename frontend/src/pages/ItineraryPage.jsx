@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { Plus, ThumbUp, ThumbDown, Lock, Check, Pin, Navigation, Trash, Edit } from '../components/Icons';
 import { Sheet, Toast, useConfirm, LoadingButton, SkeletonItinerary } from '../components/Shared';
 import { api } from '../utils/api';
-import { formatDate, formatTime12h } from '../utils/helpers';
+import { formatDate, formatTime12h, msg, pick } from '../utils/helpers';
 import { useApp } from '../App';
 
 export default function ItineraryPage({ trip, user, items: propItems, setItems: propSetItems, refreshItinerary }) {
@@ -21,7 +21,7 @@ export default function ItineraryPage({ trip, user, items: propItems, setItems: 
   const [form, setForm] = useState({ title: '', description: '', date: '', time: '', location: '' });
   const [editForm, setEditForm] = useState({ title: '', description: '', date: '', time: '', location: '' });
 
-  const showToast = (msg, type = 'info') => { setToast({ msg, type }); setTimeout(() => setToast(null), 2500); };
+  const showToast = (text, type = 'info') => { setToast({ msg: text, type }); setTimeout(() => setToast(null), 2500); };
 
   const dayTitles = trip?.day_titles || {};
 
@@ -67,16 +67,16 @@ export default function ItineraryPage({ trip, user, items: propItems, setItems: 
   };
 
   const handleVote = async (id, voteType = true) => { try { await api.post(`/api/trips/${trip.id}/itinerary/${id}/vote`, { vote: voteType }); await refresh(); } catch { showToast('Vote failed', 'error'); } };
-  const handleLock = async (id) => { try { await api.put(`/api/trips/${trip.id}/itinerary/${id}`, { status: 'final' }); await refresh(); showToast('Locked in. No backing out.', 'success'); } catch { showToast('Failed', 'error'); } };
-  const handleUnlock = async (id) => { try { await api.put(`/api/trips/${trip.id}/itinerary/${id}`, { status: 'voting' }); await refresh(); showToast('Back up for debate', 'success'); } catch { showToast('Failed', 'error'); } };
-  const handleDelete = async (id) => { if (!await confirm({ title: 'Cut this from the lineup?', message: 'It had a good run.', confirmText: 'Cut it', danger: true })) return; try { await api.delete(`/api/trips/${trip.id}/itinerary/${id}`); setItems(prev => prev.filter(i => i.id !== id)); showToast('Gone. Poof.', 'success'); } catch { showToast('Failed', 'error'); } };
+  const handleLock = async (id) => { try { await api.put(`/api/trips/${trip.id}/itinerary/${id}`, { status: 'final' }); await refresh(); showToast(msg('toasts.itemLocked', {}, true), 'success'); } catch { showToast('Failed', 'error'); } };
+  const handleUnlock = async (id) => { try { await api.put(`/api/trips/${trip.id}/itinerary/${id}`, { status: 'voting' }); await refresh(); showToast(msg('toasts.itemUnlocked', {}, true), 'success'); } catch { showToast('Failed', 'error'); } };
+  const handleDelete = async (id) => { if (!await confirm({ title: msg('confirms.deleteItinerary.titles', {}, true), message: msg('confirms.deleteItinerary.messages', {}, true), confirmText: msg('confirms.deleteItinerary.confirmText', {}, true), danger: true })) return; try { await api.delete(`/api/trips/${trip.id}/itinerary/${id}`); setItems(prev => prev.filter(i => i.id !== id)); showToast(msg('toasts.itineraryDeleted', {}, true), 'success'); } catch { showToast('Failed', 'error'); } };
   const handleAdd = async () => {
     if (!form.title || !form.date || !form.time) { showToast('Title, date, and time are required', 'error'); return; }
     setSubmitting(true);
     const addedDate = form.date;
     try {
       await api.post(`/api/trips/${trip.id}/itinerary`, { ...form, status: 'proposed' }); await refresh();
-      setForm({ title: '', description: '', date: '', time: '', location: '' }); setShowAdd(false); showToast('Added!', 'success');
+      setForm({ title: '', description: '', date: '', time: '', location: '' }); setShowAdd(false); showToast(msg('toasts.itineraryAdded', {}, true), 'success');
       // Scroll to the day section where item was added
       setTimeout(() => {
         const el = document.getElementById(`day-${addedDate}`);
@@ -89,7 +89,7 @@ export default function ItineraryPage({ trip, user, items: propItems, setItems: 
   const handleSaveEdit = async () => {
     if (!showEdit || !editForm.title || !editForm.date || !editForm.time) { showToast('Title, date, and time are required', 'error'); return; }
     setSubmitting(true);
-    try { await api.put(`/api/trips/${trip.id}/itinerary/${showEdit.id}`, editForm); await refresh(); setShowEdit(null); showToast('Updated!', 'success'); } catch { showToast('Failed', 'error'); }
+    try { await api.put(`/api/trips/${trip.id}/itinerary/${showEdit.id}`, editForm); await refresh(); setShowEdit(null); showToast(msg('toasts.itineraryUpdated', {}, true), 'success'); } catch { showToast('Failed', 'error'); }
     setSubmitting(false);
   };
   const openMaps = (loc) => { if (loc) window.open(`https://maps.google.com/maps/search/?api=1&query=${encodeURIComponent(loc)}`, '_blank'); };
@@ -113,19 +113,19 @@ export default function ItineraryPage({ trip, user, items: propItems, setItems: 
       const res = await api.put(`/api/trips/${trip.id}/day-title`, { date: showDayTitle.date, title: dayTitleInput.trim() });
       if (res.data?.day_titles && setTrip) setTrip(prev => ({ ...prev, day_titles: res.data.day_titles }));
       setShowDayTitle(null);
-      showToast(dayTitleInput.trim() ? 'Day title saved' : 'Day title removed', 'success');
+      showToast(msg('toasts.dayTitleSaved', {}, true), 'success');
     } catch { showToast('Failed to save', 'error'); }
   };
   const deleteDayTitle = async (date) => {
     try {
       const res = await api.put(`/api/trips/${trip.id}/day-title`, { date, title: '' });
       if (res.data?.day_titles && setTrip) setTrip(prev => ({ ...prev, day_titles: res.data.day_titles }));
-      showToast('Day title cleared', 'success');
+      showToast(msg('toasts.dayTitleSaved', {}, true), 'success');
     } catch { showToast('Failed', 'error'); }
   };
 
   return (
-    <div>
+    <div className="page-itinerary">
       {!isDesktop && <div className="topbar"><span className="topbar-title">Itinerary</span><button className="btn-add" onClick={() => openAddForDate(tripDates[0] || '')}><Plus size={13} /> Add</button></div>}
       {isDesktop && <div className="desk-header"><div className="desk-header-title">Itinerary</div><button className="btn-add" onClick={() => openAddForDate(tripDates[0] || '')}><Plus size={13} /> Add item</button></div>}
       <div style={{ padding: isDesktop ? '24px 32px' : '6px 20px' }}>
@@ -141,12 +141,12 @@ export default function ItineraryPage({ trip, user, items: propItems, setItems: 
                   {title && <span style={{ fontFamily: 'var(--font-serif)', fontSize: 15, fontWeight: 500, color: 'var(--primary)' }}>— {title}</span>}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {isAdmin && date !== 'No date' && !title && (
+                  {date !== 'No date' && !title && (
                     <button onClick={() => openDayTitle(date)} style={{ background: 'none', border: 'none', fontSize: 13, color: 'var(--primary)', cursor: 'pointer', fontWeight: 500 }}>
                       + Day title
                     </button>
                   )}
-                  {isAdmin && date !== 'No date' && title && (
+                  {date !== 'No date' && title && (
                     <>
                       <button className="icon-btn" onClick={() => openDayTitle(date)} aria-label="Edit day title"><Edit size={14} color="var(--text-muted)" /></button>
                       <button className="icon-btn" onClick={() => deleteDayTitle(date)} aria-label="Delete day title"><Trash size={14} color="var(--text-muted)" /></button>
@@ -214,7 +214,7 @@ export default function ItineraryPage({ trip, user, items: propItems, setItems: 
                       onClick={() => handleVote(item.id, false)}
                       onMouseEnter={() => dislikeVoters.length > 0 && setVoterTip(`${item.id}-dislike`)}
                       onMouseLeave={() => setVoterTip(null)}
-                      className="reaction-chip"
+                      className="reaction-chip reaction-dislike"
                       aria-label={`Dislike${dislikeCount > 0 ? `, ${dislikeCount} votes` : ''}`}
                       style={{
                         position: 'relative',
@@ -244,15 +244,15 @@ export default function ItineraryPage({ trip, user, items: propItems, setItems: 
                 <Plus size={14} /> Add item
               </button>
               {dateItems.length === 0 && (
-                <div style={{ padding: '4px 0', fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic' }}>Nothing planned yet</div>
+                <div style={{ padding: '4px 0', fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic' }}>{msg('emptyStates.itinerary.titles')}</div>
               )}
             </div>
           );
         })}
       </div>
       {showAdd && <Sheet onClose={() => setShowAdd(false)} title="Add to itinerary">
-        <div className="form-group"><label className="label">What are we doing? <span style={{ color: 'var(--danger)' }}>*</span></label><input className="form-input" placeholder="e.g. Happy hour, Kayaks, Nap time" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} aria-required="true" autoFocus /></div>
-        <div className="form-group"><label className="label">Details</label><textarea className="form-input" placeholder="What will everyone be doing?" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
+        <div className="form-group"><label className="label">What are we doing? <span style={{ color: 'var(--danger)' }}>*</span></label><input className="form-input" placeholder={msg("placeholders.itineraryTitle")} value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} aria-required="true" autoFocus /></div>
+        <div className="form-group"><label className="label">Details</label><textarea className="form-input" placeholder={msg("placeholders.itineraryDescription")} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <div className="form-group" style={{ flex: 1, minWidth: 140 }}>
             <label className="label">Date <span style={{ color: 'var(--danger)' }}>*</span></label>
@@ -265,7 +265,7 @@ export default function ItineraryPage({ trip, user, items: propItems, setItems: 
             {form.time && <div style={{ fontSize: 13, color: 'var(--warm)', marginTop: 4 }}>{formatTime12h(form.time)}</div>}
           </div>
         </div>
-        <div className="form-group"><label className="label">Location (optional)</label><input className="form-input" placeholder="e.g. Sleeping Bear Dunes" value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} /></div>
+        <div className="form-group"><label className="label">Location (optional)</label><input className="form-input" placeholder={msg("placeholders.locationPlaceholder")} value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} /></div>
         <LoadingButton loading={submitting} onClick={handleAdd}>Add to itinerary</LoadingButton>
       </Sheet>}
       {showEdit && <Sheet onClose={() => setShowEdit(null)} title={`Edit: ${showEdit.title}`}>
@@ -283,7 +283,7 @@ export default function ItineraryPage({ trip, user, items: propItems, setItems: 
             {editForm.time && <div style={{ fontSize: 13, color: 'var(--warm)', marginTop: 4 }}>{formatTime12h(editForm.time)}</div>}
           </div>
         </div>
-        <div className="form-group"><label className="label">Location</label><input className="form-input" value={editForm.location} onChange={e => setEditForm(f => ({ ...f, location: e.target.value }))} placeholder="e.g. Sleeping Bear Dunes" /></div>
+        <div className="form-group"><label className="label">Location</label><input className="form-input" value={editForm.location} onChange={e => setEditForm(f => ({ ...f, location: e.target.value }))} placeholder={msg("placeholders.locationPlaceholder")} /></div>
         <div style={{ display: 'flex', gap: 8 }}>
           <LoadingButton loading={submitting} onClick={handleSaveEdit} style={{ flex: 1 }}><Check size={14} /> Save changes</LoadingButton>
           {isAdmin && <button className="btn btn-danger" style={{ flex: 0, width: 'auto', padding: '15px 18px' }} onClick={() => { handleDelete(showEdit.id); setShowEdit(null); }} aria-label="Delete item"><Trash size={16} /></button>}
@@ -293,7 +293,7 @@ export default function ItineraryPage({ trip, user, items: propItems, setItems: 
         <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>Give this day a name. Go big or go home.</div>
         <div className="form-group">
           <label className="label">Title</label>
-          <input className="form-input" placeholder="e.g. Lake Day, Send It Sunday, Recovery Day" value={dayTitleInput} onChange={e => setDayTitleInput(e.target.value)} autoFocus />
+          <input className="form-input" placeholder={msg("placeholders.dayTitle")} value={dayTitleInput} onChange={e => setDayTitleInput(e.target.value)} autoFocus />
         </div>
         <button className="btn btn-primary" onClick={saveDayTitle}><Check size={14} /> Save</button>
       </Sheet>}

@@ -15,7 +15,7 @@ from models.models import (
     MemberRole, MagicToken
 )
 from utils.deps import get_current_user
-from services.email import send_login_code_email, send_welcome_email
+from services.email import send_login_code_email, send_welcome_email, send_trip_invite_email
 from config import get_settings
 
 router = APIRouter(prefix="/admin/{trip_id}", tags=["admin"])
@@ -97,9 +97,8 @@ async def invite_user(
     db.add(member)
     await db.commit()
 
-    # Only send email to NEW users
+    # Only send welcome email to brand new users
     if is_new_user:
-        # Fetch trip details for the welcome email
         trip_result = await db.execute(select(Trip).where(Trip.id == trip_id))
         trip = trip_result.scalar_one_or_none()
         trip_name = trip.name if trip else "a vacation"
@@ -113,9 +112,8 @@ async def invite_user(
             )
         except Exception as e:
             print(f"Failed to send welcome email: {e}")
-        return {"message": f"Invited {email} (welcome email sent)"}
 
-    return {"message": f"Added {email} to trip"}
+    return {"message": f"Invited {email}"}
 
 
 @router.post("/resend-link")
@@ -148,6 +146,57 @@ async def resend_login_link(
     except Exception as e:
         print(f"Failed to resend code: {e}")
     return {"message": "Login code sent"}
+
+
+@router.post("/send-email")
+async def send_email_to_user(
+    trip_id: UUID,
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Manually send a specific type of email to a user. Admin only."""
+    await require_admin(trip_id, user, db)
+    data = await request.json()
+    target_user_id = data.get("user_id")
+    email_type = data.get("email_type")  # "login_code", "trip_invite", "welcome"
+    if not target_user_id or not email_type:
+        raise HTTPException(400, "user_id and email_type required")
+
+    result = await db.execute(select(User).where(User.id == UUID(str(target_user_id))))
+    target_user = result.scalar_one_or_none()
+    if not target_user:
+        raise HTTPException(404, "User not found")
+
+    trip_result = await db.execute(select(Trip).where(Trip.id == trip_id))
+    trip = trip_result.scalar_one_or_none()
+    trip_name = trip.name if trip else "a vacation"
+    trip_location = getattr(trip, 'location', None) if trip else None
+    name = target_user.name or "there"
+
+    if email_type == "login_code":
+        code = f"{__import__('random').randint(0, 999999):06d}"
+        magic_token = MagicToken(
+            id=uuid4(),
+            email=target_user.email,
+            token=code,
+            expires_at=datetime.utcnow() + timedelta(minutes=TOKEN_EXPIRY_MINUTES),
+        )
+        db.add(magic_token)
+        await db.commit()
+        await send_login_code_email(target_user.email, name, code)
+        return {"message": f"Login code sent to {target_user.email}"}
+
+    elif email_type == "trip_invite":
+        await send_trip_invite_email(target_user.email, name, trip_name, trip_location)
+        return {"message": f"Trip invite sent to {target_user.email}"}
+
+    elif email_type == "welcome":
+        await send_welcome_email(target_user.email, name, trip_name, trip_location)
+        return {"message": f"Welcome email sent to {target_user.email}"}
+
+    else:
+        raise HTTPException(400, f"Unknown email_type: {email_type}")
 
 
 @router.put("/users/{user_id}")

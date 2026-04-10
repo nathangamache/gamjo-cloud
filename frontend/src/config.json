@@ -1,0 +1,558 @@
+{
+  "greetings": {
+    "morning": [
+      "Morning, {{name}}. Coffee first, plans later.",
+      "Rise and shine, {{name}}",
+      "Good morning, {{name}}. Who's making breakfast?",
+      "Morning, {{name}}. The lake's not gonna fish itself.",
+      "{{name}}, the coffee's hot and the lake is calm. Get out there.",
+      "Good morning, {{name}}. Dibs on the first shower.",
+      "Rise and shine, {{name}}. The sun's already on the dock.",
+      "Morning, {{name}}. Pancakes or eggs? Choose wisely.",
+      "{{name}}, the loons are up. Your turn.",
+      "Good morning, {{name}}. Another day in paradise.",
+      "Morning, {{name}}. Who forgot to close the screen door last night?",
+      "{{name}}, the fog is rolling off the lake. Go look."
+    ],
+    "earlyAfternoon": [
+      "Good afternoon, {{name}}",
+      "Hey {{name}}. What's the move?",
+      "Afternoon, {{name}}. Nap or adventure?",
+      "{{name}}, the lake is calling. Are you gonna answer?",
+      "Good afternoon, {{name}}. Hammock or kayak?",
+      "Hey {{name}}. Boat ride or beach? Clock's ticking.",
+      "Afternoon, {{name}}. Perfect time for a lake nap.",
+      "{{name}}, the water's warm. Get in.",
+      "Good afternoon, {{name}}. Sunscreen check.",
+      "Hey {{name}}. Who's driving the boat?",
+      "Afternoon, {{name}}. Ice cream run?",
+      "{{name}}, the fish aren't catching themselves."
+    ],
+    "lateAfternoon": [
+      "It's 5 o'clock somewhere. Oh wait, it is here too.",
+      "{{name}}, the sun's going down and the drinks are going up.",
+      "Happy hour, {{name}}. You've earned it.",
+      "{{name}}, golden hour on the lake. Grab a drink and a chair.",
+      "Sun's getting low, {{name}}. Time to crack one open.",
+      "{{name}}, the sunset's about to go off. Front row seats on the dock.",
+      "Happy hour, {{name}}. The lake provides.",
+      "{{name}}, it's that magic hour. Drinks on the dock.",
+      "The grill should be heating up. Just saying, {{name}}.",
+      "{{name}}, the pontoon isn't going to sunset cruise itself."
+    ],
+    "evening": [
+      "Evening, {{name}}. It's officially cocktail hour.",
+      "Good evening, {{name}}. Who's pouring?",
+      "Cheers, {{name}}. What are we drinking?",
+      "Evening, {{name}}. Bonfire tonight?",
+      "{{name}}, the stars are coming out. So should you.",
+      "Good evening, {{name}}. S'mores or no s'mores? Trick question.",
+      "{{name}}, fire's going. Pull up a chair.",
+      "Evening, {{name}}. The mosquitos send their regards.",
+      "{{name}}, the lake looks like glass right now. Go see it.",
+      "Good evening, {{name}}. Firewood check: are we good?"
+    ],
+    "lateNight": [
+      "Still up, {{name}}? Hydrate.",
+      "{{name}}. Water. Now.",
+      "It's late, {{name}}. One more won't hurt... right?",
+      "{{name}}, the fire's dying. Are you?",
+      "Still going, {{name}}? Legend status.",
+      "{{name}}, the loons are judging you. Go to bed.",
+      "Late night, {{name}}. Tomorrow-you is gonna have opinions about this.",
+      "{{name}}, the stars are nice but your bed is nicer.",
+      "You're still up? The raccoons are impressed, {{name}}.",
+      "{{name}}, hydrate or die-drate. Your call."
+    ],
+    "middleOfNight": [
+      "{{name}}, it is 100% bedtime. Go to sleep.",
+      "{{name}}. Why are you awake right now?",
+      "The lake is sleeping. You should be too, {{name}}.",
+      "{{name}}, nothing good happens after 3am. Go to bed.",
+      "Put the phone down, {{name}}. The itinerary will be there in the morning.",
+      "{{name}}, even the fish are asleep right now.",
+      "Go to sleep, {{name}}. The bonfire is long dead.",
+      "{{name}}, this is your sign to close your eyes.",
+      "It is unreasonably late, {{name}}. Pillow. Now.",
+      "{{name}}, tomorrow is going to be rough if you don't sleep.",
+      "The stars are beautiful but your pillow is calling, {{name}}.",
+      "{{name}}, the raccoons finished their shift. You should too."
+    ],
+    "preTrip": [
+      "Hey {{name}}. {{days}} days until we leave. Not that anyone is counting.",
+      "{{name}}, start making your list. You will forget something.",
+      "Hey {{name}}. The countdown is real.",
+      "{{name}}, have you started packing yet? Be honest.",
+      "Almost time, {{name}}. Can you feel it?",
+      "{{name}}, {{days}} days. The group chat is about to get intense.",
+      "Hey {{name}}. Do NOT forget the bug spray this year.",
+      "{{name}}, the lake is waiting. {{days}} more days.",
+      "Getting close, {{name}}. Time to start neglecting responsibilities.",
+      "{{name}}, {{days}} days out. Grocery list started?",
+      "Hey {{name}}. The vacation fund ready?",
+      "{{name}}, {{days}} days. Who is bringing the cornhole set?"
+    ],
+    "postTrip": [
+      "Hey {{name}}. Back to reality.",
+      "{{name}}, still thinking about the lake?",
+      "Welcome back, {{name}}. Miss it yet?",
+      "{{name}}, the vacation is over but the memories are forever. And the expenses.",
+      "Hey {{name}}. Time to settle up.",
+      "{{name}}, real life hits different after the lake.",
+      "Post-vacation {{name}}. How are we holding up?",
+      "{{name}}, the lake misses you too.",
+      "Hey {{name}}. Remember when we didn't have responsibilities?",
+      "{{name}}, already planning next year?",
+      "Back at it, {{name}}. But the photos live on.",
+      "{{name}}, that was a good one. Start the countdown to next year."
+    ]
+  },
+  "tripContext": {
+    "tomorrow": "Tomorrow's the day! Bags packed?",
+    "soonDays": "{{days}} days out. Don't forget the sunscreen.",
+    "weekAway": "{{days}} days until we're outta here",
+    "farAway": "{{days}} days to go. Start the countdown.",
+    "dayOne": "Day 1. Let's make it count!",
+    "lastDay": "Last day. Make it a good one.",
+    "midTrip": "Day {{day_num}} of {{total_days}}",
+    "justHome": "Just got home. Reality hits different.",
+    "postTrip": "{{days}} days since vacation. Withdrawal symptoms kicking in yet?"
+  },
+  "funFacts": {
+    "topPayer": [
+      "{{name}} is carrying {{pct}}% of the tab. Legend.",
+      "{{name}} is bankrolling this trip at {{pct}}%. Someone buy them a drink.",
+      "{{name}} has paid {{pct}}% of everything. MVP status.",
+      "{{name}} out here covering {{pct}}% of the damage. Respect."
+    ],
+    "biggestDay": [
+      "Biggest day: {{day_name}} (${{amount}}). What happened?",
+      "{{day_name}} was a ${{amount}} day. Nobody's talking about it.",
+      "We dropped ${{amount}} on {{day_name}}. No regrets.",
+      "${{amount}} on {{day_name}} alone. That's a new record."
+    ],
+    "biggestExpense": [
+      "Biggest single expense: ${{amount}} on \"{{title}}\".",
+      "\"{{title}}\" cost ${{amount}}. Worth every penny. Probably.",
+      "${{amount}} on \"{{title}}\". Someone had to do it.",
+      "The ${{amount}} \"{{title}}\" is carrying this trip's expense total."
+    ],
+    "expenseCount": [
+      "{{count}} expenses and counting. The receipts don't lie.",
+      "{{count}} expenses logged. We're keeping it honest.",
+      "{{count}} expenses so far. That's a lot of lake living.",
+      "We've logged {{count}} expenses. The accountant in the group is thriving."
+    ],
+    "avgExpense": [
+      "Average expense: ${{amount}}. That's a lot of appetizers.",
+      "Average spend: ${{amount}} per expense. Sounds about right for up north.",
+      "${{amount}} average expense. Gas station runs add up.",
+      "Running ${{amount}} per expense. The lake life isn't cheap."
+    ]
+  },
+  "emptyStates": {
+    "expenses": {
+      "titles": [
+        "Nobody's spent a dime yet",
+        "The wallet is still full",
+        "Zero expenses. Suspicious.",
+        "Nothing on the tab yet",
+        "Clean slate. For now."
+      ],
+      "messages": [
+        "Give it time. Someone's gonna buy a round.",
+        "The first receipt is always the hardest.",
+        "Someone make a grocery run already.",
+        "It's only a matter of time.",
+        "The lake store is calling."
+      ]
+    },
+    "photos": {
+      "titles": [
+        "No memories yet",
+        "The camera roll is empty",
+        "Where are the photos?",
+        "Nothing captured yet",
+        "The gallery awaits"
+      ],
+      "messages": [
+        "The good, the bad, and the embarrassing.",
+        "Someone take a picture. This won't last forever.",
+        "The sunsets aren't gonna photograph themselves.",
+        "Future blackmail material goes here.",
+        "Proof it happened or it didn't."
+      ]
+    },
+    "itinerary": {
+      "titles": [
+        "Nothing planned yet",
+        "Wide open schedule",
+        "The itinerary is a blank canvas",
+        "No plans. Just vibes.",
+        "Freedom. Pure freedom."
+      ],
+      "messages": [
+        "Add something before everyone just naps all day.",
+        "Someone needs to be the planner. Step up.",
+        "The lake isn't going to schedule itself.",
+        "Wing it? Or plan it? Your call.",
+        "An empty itinerary is a cry for help."
+      ]
+    },
+    "vacations": {
+      "titles": [
+        "No trips yet",
+        "The adventure board is empty",
+        "Nothing on the calendar"
+      ],
+      "messages": [
+        "Someone's gotta plan the fun around here.",
+        "The lake is waiting. Create a trip.",
+        "Every great vacation starts with someone clicking a button."
+      ]
+    }
+  },
+  "toasts": {
+    "expenseAdded": [
+      "Ka-ching! Added.",
+      "On the books.",
+      "That's gonna leave a mark.",
+      "The tab grows.",
+      "Noted. No judgment.",
+      "Receipt logged. The accountant approves."
+    ],
+    "expenseDeleted": [
+      "Poof. Never happened.",
+      "Gone. What expense?",
+      "Erased from the record.",
+      "The tab just got lighter.",
+      "Deleted. We'll never speak of it."
+    ],
+    "expenseUpdated": [
+      "Updated!",
+      "Fixed it.",
+      "Corrected. The record is clean.",
+      "Updated. The math checks out now."
+    ],
+    "itineraryAdded": [
+      "Added!",
+      "On the schedule.",
+      "Penciled in.",
+      "It's official.",
+      "Added to the lineup.",
+      "The agenda grows."
+    ],
+    "itineraryUpdated": [
+      "Updated!",
+      "Changes saved.",
+      "The plan evolves.",
+      "Noted and updated."
+    ],
+    "itineraryDeleted": [
+      "Gone. Poof.",
+      "Cut from the lineup.",
+      "Removed. It had a good run.",
+      "Off the schedule.",
+      "Scratched. Moving on."
+    ],
+    "itemLocked": [
+      "Locked in. No backing out.",
+      "It's official. We're doing this.",
+      "Confirmed. No take-backs.",
+      "Set in stone. Kind of.",
+      "Locked. The debate is over."
+    ],
+    "itemUnlocked": [
+      "Back up for debate.",
+      "Unlocked. Here we go again.",
+      "Open for discussion. Again.",
+      "The floor is open.",
+      "Back on the table."
+    ],
+    "photoUploaded": [
+      "{{count}} photo{{s}} uploaded. The evidence is in.",
+      "{{count}} photo{{s}} added to the gallery.",
+      "{{count}} new memor{{ies}} captured.",
+      "{{count}} photo{{s}} uploaded. No filter needed."
+    ],
+    "voted": [
+      "Vote cast!",
+      "Your voice has been heard.",
+      "Noted.",
+      "Democracy in action."
+    ],
+    "profileUpdated": [
+      "Profile updated.",
+      "Looking good.",
+      "Changes saved.",
+      "Updated. New you."
+    ],
+    "dayTitleSaved": [
+      "Day title saved.",
+      "Named it.",
+      "That's the one.",
+      "Perfect name for it."
+    ]
+  },
+  "confirms": {
+    "deleteExpense": {
+      "titles": [
+        "Delete this expense?",
+        "Erase this one?",
+        "Remove from the tab?"
+      ],
+      "messages": [
+        "The tab doesn't lie, but we can make it disappear.",
+        "Gone forever. Unless someone re-adds it.",
+        "Are you sure? The receipt says otherwise.",
+        "This expense is about to cease to exist."
+      ],
+      "confirmText": [
+        "Delete it",
+        "Erase it",
+        "Make it disappear"
+      ]
+    },
+    "deleteItinerary": {
+      "titles": [
+        "Cut this from the lineup?",
+        "Remove this plan?",
+        "Scratch this one?"
+      ],
+      "messages": [
+        "It had a good run.",
+        "Not every idea makes the cut.",
+        "We hardly knew ye.",
+        "Sometimes less is more."
+      ],
+      "confirmText": [
+        "Cut it",
+        "Remove it",
+        "Scratch it"
+      ]
+    },
+    "signOut": {
+      "titles": [
+        "Sign out?",
+        "Heading out?",
+        "Leaving so soon?"
+      ],
+      "messages": [
+        "You'll need a new login code to get back in.",
+        "We'll keep your seat warm.",
+        "The lake will miss you. Also you'll need a new code."
+      ],
+      "confirmText": [
+        "Sign out",
+        "Peace out",
+        "I'm out"
+      ]
+    }
+  },
+  "placeholders": {
+    "expenseTitle": [
+      "e.g. Booze run, Dinner, Boat gas",
+      "e.g. Grocery haul, Ice cream, Bait shop",
+      "e.g. Pizza night, Firewood, Sunscreen",
+      "e.g. Lake supplies, Happy hour, Gas station",
+      "e.g. Dock snacks, Mini golf, Tackle shop"
+    ],
+    "expenseNotes": [
+      "Be honest...",
+      "Any details worth noting?",
+      "The truth, the whole truth...",
+      "Receipts don't lie. Neither should you.",
+      "Optional but encouraged."
+    ],
+    "itineraryTitle": [
+      "e.g. Happy hour, Kayaks, Nap time",
+      "e.g. Fishing, Sunset cruise, Bonfire",
+      "e.g. Golf, Beach day, Tube float",
+      "e.g. Hike, Town run, Cookout",
+      "e.g. Jet ski, Card night, Star gazing"
+    ],
+    "itineraryDescription": [
+      "What will everyone be doing?",
+      "Paint the picture.",
+      "Details, details, details.",
+      "What's the plan here?",
+      "Sell it to the group."
+    ],
+    "locationPlaceholder": [
+      "e.g. Sleeping Bear Dunes",
+      "e.g. The dock, Downtown, Golf course",
+      "e.g. State park, The beach, In town",
+      "e.g. The lake, Back porch, Fire pit"
+    ],
+    "dayTitle": [
+      "e.g. Lake Day, Send It Sunday, Recovery Day",
+      "e.g. Golf Day, Boat Day, Chill Day",
+      "e.g. Adventure Day, Rain Day, Last Hurrah",
+      "e.g. Fish Day, Beach Day, Town Day"
+    ]
+  },
+  "weatherCommentary": {
+    "clear": [
+      "Not a cloud in sight.",
+      "Sunscreen mandatory.",
+      "The lake is calling.",
+      "Get out there.",
+      "Blue sky all day. No excuses.",
+      "This is postcard weather."
+    ],
+    "perfectDay": [
+      "This is why we come up north.",
+      "Absolutely perfect lake day.",
+      "Clear skies and warm water. Get in.",
+      "Couldn't have ordered better weather.",
+      "This is the day everyone back home is jealous of.",
+      "Peak lake weather. Don't waste it inside.",
+      "Weather like this doesn't happen by accident."
+    ],
+    "hotClear": [
+      "Hot and sunny. The lake is your air conditioning.",
+      "Scorcher with clear skies. Stay wet.",
+      "It's a beach day. No debate.",
+      "Sun's out full force. Sunscreen and water. Both.",
+      "Clear and hot. The floating life chose you."
+    ],
+    "scorching": [
+      "Dangerously good lake weather.",
+      "It's brutal out there. Do not leave the water.",
+      "Heat wave. Hydrate like your life depends on it.",
+      "This hot? The lake is the only answer.",
+      "Even the fish are looking for shade."
+    ],
+    "hot": [
+      "It's a scorcher. Stay in the water.",
+      "Hot one today. Hydrate.",
+      "Jump in the lake. Doctor's orders.",
+      "Heat advisory: apply sunscreen and get wet.",
+      "Too hot for anything except floating."
+    ],
+    "coolClear": [
+      "Clear skies but bring a layer. It's brisk.",
+      "Sunny and cool. Perfect hiking weather actually.",
+      "Blue sky but don't let it fool you. It's chilly.",
+      "Cool for summer but the sun is trying.",
+      "Hoodie and sunshine. Classic up north combo.",
+      "It's a pretty day. Just a cold pretty day."
+    ],
+    "cold": [
+      "Bundle up out there.",
+      "Bonfire weather for sure.",
+      "Hoodie day. No complaints.",
+      "Cold morning. Hot coffee mandatory.",
+      "Chilly but the fresh air is worth it."
+    ],
+    "freezing": [
+      "What happened to summer?",
+      "It's genuinely cold. Bonfire is non-negotiable tonight.",
+      "Layers, people. Layers.",
+      "This is aggressive for vacation weather.",
+      "Hot chocolate kind of day. In July. Sure.",
+      "The lake is gonna feel like an ice bath."
+    ],
+    "partlyCloudy": [
+      "A few clouds, but nothing to worry about.",
+      "Partly cloudy. Still a great day.",
+      "Some clouds rolling in. The lake doesn't care.",
+      "Clouds are just decoration today."
+    ],
+    "overcast": [
+      "Gray skies, full hearts.",
+      "Overcast but still beautiful up here.",
+      "Cloud cover. Good fishing weather actually.",
+      "No sun but no complaints.",
+      "Moody skies. Very dramatic."
+    ],
+    "fog": [
+      "Foggy out there. The lake is hiding.",
+      "Can't even see the water. It'll burn off.",
+      "Fog on the lake. Very mysterious.",
+      "Visibility is low. Stay close to shore."
+    ],
+    "rain": [
+      "Rain day. Board games it is.",
+      "Wet out there. Perfect nap weather.",
+      "Rainy day. Hit the puzzles.",
+      "Indoor day. Who's cooking?",
+      "Grab a book and a blanket.",
+      "Rain on the roof. Actually kind of nice.",
+      "The fish are biting in the rain. Just saying."
+    ],
+    "rainCold": [
+      "Cold rain. This is a movie day.",
+      "Rainy and chilly. Fire up the fireplace.",
+      "Cold and wet. Worst combo. Best nap weather.",
+      "Rain plus cold. Cards, coffee, and zero guilt.",
+      "Not going anywhere today. And that's fine.",
+      "This is what the cabin was built for."
+    ],
+    "thunderstorm": [
+      "Thunder and lightning. Stay off the lake.",
+      "Storm rolling through. Movie marathon time.",
+      "Get off the water. Now.",
+      "Thunder up north hits different. Enjoy from inside.",
+      "Lightning show tonight. Free entertainment.",
+      "Stay inside. Nature is angry."
+    ],
+    "snow": [
+      "Snow? In vacation season?",
+      "It's snowing. This is fine.",
+      "Unexpected snow. Build a snowman I guess.",
+      "Snow on the lake. That's a new one."
+    ],
+    "nice": [
+      "Beautiful day up north.",
+      "Couldn't ask for better weather.",
+      "This is why we come here.",
+      "Absolutely perfect out there.",
+      "Weather like this doesn't happen by accident."
+    ]
+  },
+  "headings": {
+    "whatsHappening": [
+      "What's happening",
+      "Today's agenda",
+      "The plan",
+      "On deck",
+      "Coming up"
+    ],
+    "theSquad": [
+      "The squad",
+      "The crew",
+      "The lineup",
+      "Roll call",
+      "The whole gang"
+    ],
+    "recentActivity": [
+      "Recent activity",
+      "What's been going on",
+      "The latest",
+      "Activity log",
+      "Updates"
+    ]
+  },
+  "login": {
+    "taglines": [
+      "Lake life, organized.",
+      "Plan less. Lake more.",
+      "Where vacations come together.",
+      "The family trip hub.",
+      "Everything for the trip. Nothing else.",
+      "Up north starts here.",
+      "One app. One lake. No drama.",
+      "Sunsets, expenses, and everything in between."
+    ]
+  },
+  "settlements": {
+    "headers": [
+      "To settle up",
+      "Who owes who",
+      "The reckoning",
+      "Time to pay the piper",
+      "Balance sheet"
+    ]
+  }
+}

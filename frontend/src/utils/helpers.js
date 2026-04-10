@@ -1,6 +1,45 @@
+import config from '../config.json';
+
+// Template: replace {{token}} placeholders with values
+export function t(template, vars = {}) {
+  if (!template) return '';
+  return template.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? '');
+}
+
+// Pick random item from array (uncached, for one-off use)
+export function pick(arr) {
+  if (!arr || !arr.length) return '';
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+// Cache for msg() - stable random picks per page load
+const _msgCache = new Map();
+
+// Pick and fill a template from config (cached per path per page load)
+// Use msg('path') for stable UI text that shouldn't change on re-render
+// Use msg('path', vars, true) to force a fresh pick (e.g. toasts)
+export function msg(path, vars = {}, fresh = false) {
+  const parts = path.split('.');
+  let val = config;
+  for (const p of parts) { val = val?.[p]; }
+  if (Array.isArray(val)) {
+    let picked;
+    if (fresh || !_msgCache.has(path)) {
+      picked = pick(val);
+      if (!fresh) _msgCache.set(path, picked);
+    } else {
+      picked = _msgCache.get(path);
+    }
+    return t(picked, vars);
+  }
+  if (typeof val === 'string') return t(val, vars);
+  return '';
+}
+
 export function formatDate(d) {
   if (!d) return '';
   const dt = new Date(d + 'T12:00:00');
+  if (isNaN(dt.getTime())) return d;
   return dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 

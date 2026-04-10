@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Pin, ChevronRight, Link as LinkIcon, ThumbUp, Check, MapIcon, Navigation, Globe, Vote, Image, Calendar, Users, Settings } from '../components/Icons';
+import { Pin, ChevronLeft, ChevronRight, Link as LinkIcon, ThumbUp, Check, MapIcon, Navigation, Globe, Vote, Image, Calendar, Users, Settings } from '../components/Icons';
 import { Avatar, useApp } from '../App';
-import { SkeletonHome, WaveDivider } from '../components/Shared';
+import { SkeletonHome } from '../components/Shared';
 import { api } from '../utils/api';
-import { formatDateRange, formatDate, formatTime12h } from '../utils/helpers';
+import { formatDateRange, formatDate, formatTime12h, t, pick, msg } from '../utils/helpers';
+import config from '../config.json';
 
 // Analyze banner image brightness to decide text color
 function useImageBrightness(url) {
@@ -67,6 +68,15 @@ function HeroImage({ trip, bannerUrl, dayTitle, isDarkImage, isAdmin, navigate }
           <Settings size={18} color={isDarkImage ? '#fff' : 'var(--text)'} />
         </button>
       )}
+      <button onClick={() => navigate('vacations')} style={{
+        position: 'absolute', top: 16, left: 16, zIndex: 5,
+        width: 36, height: 36, borderRadius: '50%', border: 'none', cursor: 'pointer',
+        background: isDarkImage ? 'rgba(0,0,0,.3)' : 'rgba(255,255,255,.6)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+      }}>
+        <ChevronLeft size={18} color={isDarkImage ? '#fff' : 'var(--text)'} />
+      </button>
       <div className="hero-content">
         <div className="hero-title" style={{ color: isDarkImage ? '#fff' : 'var(--text)', fontWeight: 700, textShadow: isDarkImage ? '0 2px 8px rgba(0,0,0,.5)' : 'none', marginBottom: 14 }}>{title}</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 18px' }}>
@@ -241,7 +251,18 @@ function WeatherCard({ trip }) {
   const [weather, setWeather] = useState(null);
   useEffect(() => {
     if (!trip?.location) return;
-    const loc = encodeURIComponent(trip.location);
+
+    // Check cache first (15 min TTL)
+    const cacheKey = `weather_${trip.location}`;
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        const { data, ts } = JSON.parse(cached);
+        if (Date.now() - ts < 15 * 60 * 1000) { setWeather(data); return; }
+      } catch {}
+    }
+
+    const loc = encodeURIComponent(trip.location.split(',')[0].trim());
     fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${loc}&count=1`)
       .then(r => r.json())
       .then(geo => {
@@ -254,21 +275,118 @@ function WeatherCard({ trip }) {
         if (!data?.current) return;
         const code = data.current.weather_code;
         const temp = Math.round(data.current.temperature_2m);
-        const labels = { 0: 'Clear', 1: 'Mostly clear', 2: 'Partly cloudy', 3: 'Overcast', 45: 'Foggy', 48: 'Fog', 51: 'Light drizzle', 53: 'Drizzle', 55: 'Heavy drizzle', 61: 'Light rain', 63: 'Rain', 65: 'Heavy rain', 71: 'Light snow', 73: 'Snow', 75: 'Heavy snow', 80: 'Showers', 81: 'Showers', 82: 'Heavy showers', 95: 'Thunderstorm' };
-        setWeather({ temp, label: labels[code] || 'Unknown', code });
+        const labels = { 0: 'Clear skies', 1: 'Mostly clear', 2: 'Partly cloudy', 3: 'Overcast', 45: 'Foggy', 48: 'Dense fog', 51: 'Light drizzle', 53: 'Drizzle', 55: 'Heavy drizzle', 61: 'Light rain', 63: 'Rain', 65: 'Heavy rain', 71: 'Light snow', 73: 'Snow', 75: 'Heavy snow', 80: 'Rain showers', 81: 'Heavy showers', 82: 'Downpour', 95: 'Thunderstorm', 96: 'Thunderstorm w/ hail', 99: 'Severe thunderstorm' };
+        let condition = 'clear';
+        if (code >= 95) condition = 'thunderstorm';
+        else if (code >= 71 && code <= 77) condition = 'snow';
+        else if (code >= 51 && code <= 82) condition = 'rain';
+        else if (code >= 45 && code <= 48) condition = 'fog';
+        else if (code === 3) condition = 'overcast';
+        else if (code >= 1 && code <= 2) condition = 'partlyCloudy';
+        const weatherData = { temp, label: labels[code] || 'Unknown', code, condition };
+        setWeather(weatherData);
+        try { sessionStorage.setItem(cacheKey, JSON.stringify({ data: weatherData, ts: Date.now() })); } catch {}
       })
       .catch(() => {});
   }, [trip?.location]);
 
   if (!weather) return null;
-  const isNice = weather.code <= 3;
+
+  // Combined temperature + condition commentary
+  const wc = config.weatherCommentary;
+  const temp = weather.temp;
+  const cond = weather.condition;
+  let commentary = '';
+  if (cond === 'thunderstorm') commentary = pick(wc.thunderstorm);
+  else if (cond === 'snow') commentary = pick(wc.snow);
+  else if (cond === 'fog') commentary = pick(wc.fog);
+  else if (cond === 'rain' && temp <= 50) commentary = pick(wc.rainCold);
+  else if (cond === 'rain') commentary = pick(wc.rain);
+  else if (temp >= 90) commentary = pick(wc.scorching);
+  else if (temp >= 80 && (cond === 'clear' || cond === 'partlyCloudy')) commentary = pick(wc.hotClear);
+  else if (temp >= 80) commentary = pick(wc.hot);
+  else if (temp <= 40) commentary = pick(wc.freezing);
+  else if (temp <= 55 && (cond === 'clear' || cond === 'partlyCloudy')) commentary = pick(wc.coolClear);
+  else if (temp <= 55) commentary = pick(wc.cold);
+  else if (temp >= 70 && cond === 'clear') commentary = pick(wc.perfectDay);
+  else if (cond === 'overcast') commentary = pick(wc.overcast);
+  else if (cond === 'partlyCloudy') commentary = pick(wc.partlyCloudy);
+  else if (cond === 'clear') commentary = pick(wc.clear);
+  else commentary = pick(wc.nice);
+
+  // SVG weather icons using CSS variables
+  const icons = {
+    clear: (
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+        <circle cx="16" cy="16" r="6" fill="var(--warm)"/>
+        <g stroke="var(--warm)" strokeWidth="2" strokeLinecap="round">
+          <line x1="16" y1="2" x2="16" y2="6"/><line x1="16" y1="26" x2="16" y2="30"/>
+          <line x1="2" y1="16" x2="6" y2="16"/><line x1="26" y1="16" x2="30" y2="16"/>
+          <line x1="6.1" y1="6.1" x2="8.9" y2="8.9"/><line x1="23.1" y1="23.1" x2="25.9" y2="25.9"/>
+          <line x1="6.1" y1="25.9" x2="8.9" y2="23.1"/><line x1="23.1" y1="8.9" x2="25.9" y2="6.1"/>
+        </g>
+      </svg>
+    ),
+    partlyCloudy: (
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+        <circle cx="12" cy="12" r="5" fill="var(--warm)"/>
+        <g stroke="var(--warm)" strokeWidth="1.5" strokeLinecap="round">
+          <line x1="12" y1="2" x2="12" y2="5"/><line x1="3" y1="12" x2="6" y2="12"/>
+          <line x1="5" y1="5" x2="7" y2="7"/><line x1="19" y1="5" x2="17" y2="7"/>
+        </g>
+        <path d="M10 20C10 16.7 12.7 14 16 14C18.2 14 20.1 15.2 21 17C21.3 17 21.6 17 22 17C24.2 17 26 18.8 26 21C26 23.2 24.2 25 22 25H12C9.8 25 8 23.2 8 21C8 20.3 8.2 19.7 8.5 19.2" fill="var(--text-muted)" opacity=".5"/>
+      </svg>
+    ),
+    overcast: (
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+        <path d="M8 22C8 18.7 10.7 16 14 16C16.2 16 18.1 17.2 19 19C19.3 19 19.6 19 20 19C22.2 19 24 20.8 24 23C24 25.2 22.2 27 20 27H10C7.8 27 6 25.2 6 23C6 22.3 6.2 21.7 6.5 21.2" fill="var(--text-muted)" opacity=".45"/>
+        <path d="M12 18C12 14.7 14.7 12 18 12C20.2 12 22.1 13.2 23 15C23.3 15 23.6 15 24 15C26.2 15 28 16.8 28 19C28 21.2 26.2 23 24 23H14C11.8 23 10 21.2 10 19C10 18.3 10.2 17.7 10.5 17.2" fill="var(--text-muted)" opacity=".6"/>
+      </svg>
+    ),
+    rain: (
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+        <path d="M10 16C10 12.7 12.7 10 16 10C18.2 10 20.1 11.2 21 13C21.3 13 21.6 13 22 13C24.2 13 26 14.8 26 17C26 19.2 24.2 21 22 21H12C9.8 21 8 19.2 8 17C8 16.3 8.2 15.7 8.5 15.2" fill="var(--primary)" opacity=".35"/>
+        <g stroke="var(--primary)" strokeWidth="1.5" strokeLinecap="round" opacity=".5">
+          <line x1="12" y1="23" x2="11" y2="27"/><line x1="16" y1="23" x2="15" y2="28"/>
+          <line x1="20" y1="23" x2="19" y2="27"/><line x1="24" y1="23" x2="23" y2="26"/>
+        </g>
+      </svg>
+    ),
+    thunderstorm: (
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+        <path d="M10 14C10 10.7 12.7 8 16 8C18.2 8 20.1 9.2 21 11C21.3 11 21.6 11 22 11C24.2 11 26 12.8 26 15C26 17.2 24.2 19 22 19H12C9.8 19 8 17.2 8 15C8 14.3 8.2 13.7 8.5 13.2" fill="var(--text-muted)" opacity=".55"/>
+        <path d="M18 19L15 24H19L16 30" stroke="var(--warm)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        <g stroke="var(--primary)" strokeWidth="1.5" strokeLinecap="round" opacity=".4">
+          <line x1="11" y1="21" x2="10" y2="25"/><line x1="22" y1="21" x2="21" y2="25"/>
+        </g>
+      </svg>
+    ),
+    snow: (
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+        <path d="M10 14C10 10.7 12.7 8 16 8C18.2 8 20.1 9.2 21 11C21.3 11 21.6 11 22 11C24.2 11 26 12.8 26 15C26 17.2 24.2 19 22 19H12C9.8 19 8 17.2 8 15C8 14.3 8.2 13.7 8.5 13.2" fill="var(--primary)" opacity=".25"/>
+        <g fill="var(--primary)" opacity=".5">
+          <circle cx="12" cy="23" r="1.5"/><circle cx="17" cy="22" r="1.5"/>
+          <circle cx="22" cy="24" r="1.5"/><circle cx="14" cy="27" r="1.5"/>
+          <circle cx="20" cy="27" r="1.5"/>
+        </g>
+      </svg>
+    ),
+    fog: (
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+        <g stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" opacity=".45">
+          <line x1="6" y1="12" x2="26" y2="12"/><line x1="8" y1="17" x2="24" y2="17"/>
+          <line x1="6" y1="22" x2="26" y2="22"/><line x1="10" y1="27" x2="22" y2="27"/>
+        </g>
+      </svg>
+    ),
+  };
 
   return (
     <div className="card mb-sm" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-      <div style={{ fontSize: 28, lineHeight: 1 }}>{isNice ? '\u2600\uFE0F' : weather.code >= 61 ? '\u{1F327}\uFE0F' : '\u2601\uFE0F'}</div>
+      <div style={{ flexShrink: 0 }}>{icons[weather.condition] || icons.clear}</div>
       <div>
-        <div style={{ fontWeight: 600, fontSize: 16 }}>{weather.temp}\u00b0F</div>
-        <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{weather.label} in {trip?.location}</div>
+        <div style={{ fontWeight: 600, fontSize: 16 }}>{weather.temp}{'\u00b0'}F &middot; {weather.label}</div>
+        <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{commentary}</div>
       </div>
     </div>
   );
@@ -306,7 +424,7 @@ function ActivityFeed({ tripId }) {
 
   return (
     <div style={{ marginBottom: 16 }}>
-      <div className="heading-serif md mb-sm">Recent activity</div>
+      <div className="heading-serif md mb-sm">{headings.recentActivity}</div>
       <div className="card" style={{ padding: '4px 16px' }}>
         {activities.slice(0, 6).map(a => (
           <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--surface-alt)', fontSize: 13 }}>
@@ -334,34 +452,30 @@ export default function HomePage({ trip, members, user, navigate, expenses: prop
   const firstName = user?.name?.split(' ')[0] || 'friend';
   const greeting = useMemo(() => {
     const h = new Date().getHours();
-    const morning = [
-      `Morning, ${firstName}. Coffee first, plans later.`,
-      `Rise and shine, ${firstName}`,
-      `Good morning, ${firstName}. Who's making breakfast?`,
-    ];
-    const earlyAfternoon = [
-      `Good afternoon, ${firstName}`,
-      `Hey ${firstName}. What's the move?`,
-      `Afternoon, ${firstName}. Nap or adventure?`,
-    ];
-    const lateAfternoon = [
-      `It's 5 o'clock somewhere. Oh wait, it is here too.`,
-      `${firstName}, the sun's going down and the drinks are going up.`,
-      `Happy hour, ${firstName}. You've earned it.`,
-    ];
-    const evening = [
-      `Evening, ${firstName}. It's officially cocktail hour.`,
-      `Good evening, ${firstName}. Who's pouring?`,
-      `Cheers, ${firstName}. What are we drinking?`,
-    ];
-    const lateNight = [
-      `Still up, ${firstName}? Hydrate.`,
-      `${firstName}. Water. Now.`,
-      `It's late, ${firstName}. One more won't hurt... right?`,
-    ];
-    const pool = h < 6 ? lateNight : h < 12 ? morning : h < 17 ? earlyAfternoon : h < 19 ? lateAfternoon : h < 23 ? evening : lateNight;
-    return pool[Math.floor(Math.random() * pool.length)];
-  }, [firstName]);
+    const g = config.greetings;
+
+    // Determine trip status
+    if (trip?.start_date && trip?.end_date) {
+      const now = new Date();
+      const start = new Date(trip.start_date + 'T00:00:00');
+      const end = new Date(trip.end_date + 'T23:59:59');
+      const msDay = 86400000;
+
+      if (now < start) {
+        // Pre-trip: use countdown greetings
+        const days = Math.ceil((start - now) / msDay);
+        return t(pick(g.preTrip), { name: firstName, days });
+      }
+      if (now > end) {
+        // Post-trip: use post-vacation greetings
+        return t(pick(g.postTrip), { name: firstName });
+      }
+    }
+
+    // Active trip: use time-of-day greetings
+    const pool = h >= 20 ? g.evening : h >= 16 ? g.lateAfternoon : h >= 11 ? g.earlyAfternoon : h >= 6 ? g.morning : h >= 3 ? g.middleOfNight : g.lateNight;
+    return t(pick(pool), { name: firstName });
+  }, [firstName, trip]);
 
   // Trip countdown / day counter
   const tripContext = useMemo(() => {
@@ -370,23 +484,24 @@ export default function HomePage({ trip, members, user, navigate, expenses: prop
     const start = new Date(trip.start_date + 'T00:00:00');
     const end = new Date(trip.end_date + 'T23:59:59');
     const msDay = 86400000;
+    const tc = config.tripContext;
     if (now < start) {
       const days = Math.ceil((start - now) / msDay);
-      if (days === 1) return "Tomorrow's the day! Bags packed?";
-      if (days <= 3) return `${days} days out. Don't forget the sunscreen.`;
-      if (days <= 7) return `${days} days until we're outta here`;
-      return `${days} days to go. Start the countdown.`;
+      if (days === 1) return t(tc.tomorrow);
+      if (days <= 3) return t(tc.soonDays, { days });
+      if (days <= 7) return t(tc.weekAway, { days });
+      return t(tc.farAway, { days });
     }
     if (now <= end) {
       const dayNum = Math.floor((now - start) / msDay) + 1;
       const totalDays = Math.floor((end - start) / msDay) + 1;
-      if (dayNum === 1) return "Day 1. Let's make it count!";
-      if (dayNum === totalDays) return `Last day. Make it a good one.`;
-      return `Day ${dayNum} of ${totalDays}`;
+      if (dayNum === 1) return t(tc.dayOne);
+      if (dayNum === totalDays) return t(tc.lastDay);
+      return t(tc.midTrip, { day_num: dayNum, total_days: totalDays });
     }
     const daysSince = Math.floor((now - end) / msDay);
-    if (daysSince <= 1) return "Just got home. Reality hits different.";
-    if (daysSince <= 7) return `${daysSince} days since vacation. Withdrawal symptoms kicking in yet?`;
+    if (daysSince <= 1) return t(tc.justHome);
+    if (daysSince <= 7) return t(tc.postTrip, { days: daysSince });
     return null;
   }, [trip]);
 
@@ -410,6 +525,13 @@ export default function HomePage({ trip, members, user, navigate, expenses: prop
     photoCount: photos.length,
   }), [expenses, photos]);
 
+  // Config-driven section headings (stable per mount)
+  const [headings] = useState(() => ({
+    whatsHappening: msg('headings.whatsHappening'),
+    theSquad: msg('headings.theSquad'),
+    recentActivity: msg('headings.recentActivity'),
+  }));
+
   // Fun expense fact
   const funFact = useMemo(() => {
     if (expenses.length < 2) return null;
@@ -424,31 +546,33 @@ export default function HomePage({ trip, members, user, navigate, expenses: prop
     const total = expenses.reduce((s, e) => s + (e.amount || 0), 0);
     const topPayer = Object.entries(payerTotals).sort((a, b) => b[1] - a[1])[0];
     const topDayEntry = Object.entries(biggestDay).sort((a, b) => b[1] - a[1])[0];
+    const ff = config.funFacts;
     const facts = [];
     if (topPayer && total > 0) {
       const pct = Math.round((topPayer[1] / total) * 100);
-      if (pct > 50) facts.push(`${getName(topPayer[0])} is carrying ${pct}% of the tab. Legend.`);
+      if (pct > 50) facts.push(t(pick(ff.topPayer), { name: getName(topPayer[0]), pct }));
     }
     if (topDayEntry) {
       const dayName = new Date(topDayEntry[0] + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long' });
-      facts.push(`Biggest day: ${dayName} ($${Math.round(topDayEntry[1])}). What happened?`);
+      facts.push(t(pick(ff.biggestDay), { day_name: dayName, amount: Math.round(topDayEntry[1]) }));
     }
-    if (biggestExp && biggestExp.amount >= 50) facts.push(`Biggest single expense: $${Math.round(biggestExp.amount)} on "${biggestExp.title}".`);
-    if (expenses.length >= 5) facts.push(`${expenses.length} expenses and counting. The receipts don't lie.`);
+    if (biggestExp && biggestExp.amount >= 50) facts.push(t(pick(ff.biggestExpense), { amount: Math.round(biggestExp.amount), title: biggestExp.title }));
+    if (expenses.length >= 5) facts.push(t(pick(ff.expenseCount), { count: expenses.length }));
     const avg = total / expenses.length;
-    if (avg > 20) facts.push(`Average expense: $${Math.round(avg)}. That's a lot of appetizers.`);
-    return facts.length > 0 ? facts[Math.floor(Math.random() * facts.length)] : null;
+    if (avg > 20) facts.push(t(pick(ff.avgExpense), { amount: Math.round(avg) }));
+    return facts.length > 0 ? pick(facts) : null;
   }, [expenses, members]);
 
-  // Pick a random banner on mount (changes on each page load, not a rotator)
-  const [bannerUrl] = useState(() => {
+  // Pick a random banner (recalculates when trip changes)
+  const [bannerSeed] = useState(() => Math.random());
+  const bannerUrl = useMemo(() => {
     if (!trip) return null;
     const pool = isDesktop
       ? (trip.desktop_banners?.length ? trip.desktop_banners : trip.mobile_banners || [])
       : (trip.mobile_banners?.length ? trip.mobile_banners : trip.desktop_banners || []);
-    if (pool.length > 0) return pool[Math.floor(Math.random() * pool.length)];
+    if (pool.length > 0) return pool[Math.floor(bannerSeed * pool.length)];
     return trip.banner_url || trip.hero_image_url || null;
-  });
+  }, [trip?.id, trip?.desktop_banners?.length, trip?.mobile_banners?.length, isDesktop]);
 
   // Detect if banner image is dark or light for text contrast
   const isDarkImage = useImageBrightness(bannerUrl);
@@ -459,6 +583,11 @@ export default function HomePage({ trip, members, user, navigate, expenses: prop
       if (refreshItinerary) await refreshItinerary();
     } catch {}
   };
+
+  // Show skeleton while data is loading
+  if (!dataLoaded) {
+    return <div className="page-home" style={{ padding: '24px 20px' }}><SkeletonHome /></div>;
+  }
 
   if (!trip) {
     return (
@@ -473,7 +602,7 @@ export default function HomePage({ trip, members, user, navigate, expenses: prop
   // Desktop layout
   if (isDesktop) {
     return (
-      <div>
+      <div className="page-home">
         <div className="desk-hero">
           {bannerUrl ? <img src={bannerUrl} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} /> : (
             <>
@@ -494,6 +623,15 @@ export default function HomePage({ trip, members, user, navigate, expenses: prop
               <Settings size={18} color={isDarkImage ? '#fff' : 'var(--text)'} />
             </button>
           )}
+          <button onClick={() => navigate('vacations')} style={{
+            position: 'absolute', top: 16, left: 16, zIndex: 5,
+            width: 38, height: 38, borderRadius: '50%', border: 'none', cursor: 'pointer',
+            background: isDarkImage ? 'rgba(0,0,0,.3)' : 'rgba(255,255,255,.6)',
+            backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <ChevronLeft size={18} color={isDarkImage ? '#fff' : 'var(--text)'} />
+          </button>
           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 200, background: isDarkImage
             ? 'linear-gradient(to top, rgba(10,18,28,.9) 0%, rgba(10,18,28,.6) 35%, rgba(10,18,28,.15) 70%, transparent 100%)'
             : 'linear-gradient(to top, rgba(255,255,255,.95) 0%, rgba(255,255,255,.7) 35%, rgba(255,255,255,.15) 70%, transparent 100%)'
@@ -516,7 +654,7 @@ export default function HomePage({ trip, members, user, navigate, expenses: prop
               {tripContext && <div style={{ fontSize: 13, color: 'var(--warm)', marginBottom: 14, fontWeight: 500 }}>{tripContext}</div>}
               {!tripContext && <div style={{ marginBottom: 14 }} />}
               <HighlightedVote vote={activeVote} onVote={handleVote} members={members} userId={user?.id} />
-              <div className="heading-serif md mb-sm">What's happening</div>
+              <div className="heading-serif md mb-sm">{headings.whatsHappening}</div>
               <TodayPlan items={todayEvents} navigate={navigate} />
               <WeatherCard trip={trip} />
               <ActivityFeed tripId={trip?.id} />
@@ -524,13 +662,14 @@ export default function HomePage({ trip, members, user, navigate, expenses: prop
             <div className="desk-side-col">
               <RentalCard trip={trip} />
               <PolaroidStrip photos={photos} navigate={navigate} />
-              <div className="card mb-md" style={{ textAlign: 'center', background: 'linear-gradient(135deg, #FDF6E7, #F9E8D0)', border: 'none' }}>
-                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 400, color: 'var(--warm)' }}>${stats.totalSpent}</div>
-                <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>damage so far &middot; {stats.expenseCount} expenses</div>
-                {funFact && <div style={{ fontSize: 13, color: 'var(--warm)', fontStyle: 'italic', marginTop: 8 }}>{funFact}</div>}
+              <div className="card mb-md" style={{ textAlign: 'center', background: 'linear-gradient(145deg, #1E3A5F 0%, #2D5A8F 50%, #3D6E5A 100%)', border: 'none', padding: '28px 22px', color: '#fff' }}>
+                <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,.85)', marginBottom: 4 }}>Trip total</div>
+                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 32, fontWeight: 400 }}>${stats.totalSpent}</div>
+                <div style={{ fontSize: 13, color: 'rgba(255,255,255,.7)', marginTop: 6 }}>damage so far &middot; {stats.expenseCount} expenses</div>
+                {funFact && <div style={{ fontSize: 13, color: 'rgba(255,255,255,.8)', fontStyle: 'italic', marginTop: 10 }}>{funFact}</div>}
               </div>
               <div className="card">
-                <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>The squad</div>
+                <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{headings.theSquad}</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(52px, 1fr))', gap: 6 }}>
                   {members.map(m => (
                     <div key={m.id || m.user_id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
@@ -553,31 +692,30 @@ export default function HomePage({ trip, members, user, navigate, expenses: prop
 
   // Mobile layout
   return (
-    <div>
+    <div className="page-home">
       <HeroImage trip={trip} bannerUrl={bannerUrl} dayTitle={todayDayTitle} isDarkImage={isDarkImage} isAdmin={isAdmin} navigate={navigate} />
       <div className="hero-panel">
-        {!dataLoaded && members.length === 0 ? <SkeletonHome /> : <>
         <div style={{ fontSize: 15, marginBottom: 4 }}>{greeting}</div>
         {tripContext && <div style={{ fontSize: 13, color: 'var(--warm)', marginBottom: 14, fontWeight: 500 }}>{tripContext}</div>}
         {!tripContext && <div style={{ marginBottom: 14 }} />}
         <HighlightedVote vote={activeVote} onVote={handleVote} members={members} userId={user?.id} />
         <RentalCard trip={trip} />
 
-        <div className="heading-serif md mb-sm">What's happening</div>
+        <div className="heading-serif md mb-sm">{headings.whatsHappening}</div>
         <TodayPlan items={todayEvents} navigate={navigate} />
 
         <div className="stat-grid mb-sm">
           <div className="stat-card"><div className="stat-value">${stats.totalSpent}</div><div className="stat-label">damage so far</div></div>
           <div className="stat-card"><div className="stat-value">{stats.photoCount}</div><div className="stat-label">memories captured</div></div>
         </div>
-        {funFact && <div style={{ fontSize: 13, color: 'var(--warm)', fontStyle: 'italic', marginBottom: 16, paddingLeft: 2 }}>{funFact}</div>}
+        {funFact && <div style={{ fontSize: 13, color: 'var(--text-secondary)', fontStyle: 'italic', marginBottom: 12, paddingLeft: 2 }}>{funFact}</div>}
 
         <PolaroidStrip photos={photos} navigate={navigate} />
 
         <WeatherCard trip={trip} />
         <ActivityFeed tripId={trip?.id} />
 
-        <div className="heading-serif md mb-sm">The squad</div>
+        <div className="heading-serif md mb-sm">{headings.theSquad}</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(64px, 1fr))', gap: 8, marginBottom: 16 }}>
           {members.map(m => (
             <div key={m.id || m.user_id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
@@ -597,7 +735,6 @@ export default function HomePage({ trip, members, user, navigate, expenses: prop
           <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, var(--sage-light), #D4E8DC)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Globe size={18} color="var(--sage)" /></div>
           <div style={{ flex: 1 }}><div style={{ fontSize: 13, fontWeight: 500 }}>All vacations</div><div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Past, present, and future adventures</div></div><ChevronRight size={16} color="var(--text-muted)" />
         </div>
-        </>}
       </div>
     </div>
   );

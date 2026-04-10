@@ -1,12 +1,12 @@
 import { useState, useRef, useMemo } from 'react';
 import { ChevronRight, Camera, LogOut, Check, Dollar, ThumbUp, Image } from '../components/Icons';
-import { Sheet, Toast, WaveDivider } from '../components/Shared';
+import { Sheet, Toast, SkeletonProfile } from '../components/Shared';
 import { Avatar, useApp } from '../App';
 import { api } from '../utils/api';
-import { formatMoney } from '../utils/helpers';
+import { formatMoney, msg } from '../utils/helpers';
 
 export default function ProfilePage({ user, trip, members, groups: propGroups, onLogout }) {
-  const { isAdmin, groups: ctxGroups, setUser, expenses: ctxExpenses, itinerary: ctxItinerary, media: ctxMedia } = useApp();
+  const { isAdmin, groups: ctxGroups, setUser, expenses: ctxExpenses, itinerary: ctxItinerary, media: ctxMedia, dataLoaded } = useApp();
   const groups = propGroups || ctxGroups || [];
   const expenses = ctxExpenses || [];
   const itinerary = ctxItinerary || [];
@@ -16,7 +16,7 @@ export default function ProfilePage({ user, trip, members, groups: propGroups, o
   const [toast, setToast] = useState(null);
   const fileRef = useRef(null);
 
-  const showToast = (msg, type = 'info') => { setToast({ msg, type }); setTimeout(() => setToast(null), 2500); };
+  const showToast = (text, type = 'info') => { setToast({ msg: text, type }); setTimeout(() => setToast(null), 2500); };
 
   // #20: Find user's group from the groups array
   const myGroup = groups.find(g => g.members?.some(m => m.user_id === user?.id));
@@ -39,7 +39,7 @@ export default function ProfilePage({ user, trip, members, groups: propGroups, o
       const res = await api.put('/api/auth/me', { name: editForm.name });
       // C7: Update user in context so sidebar/greeting refresh immediately
       if (res.data && setUser) setUser(res.data);
-      showToast('Profile updated', 'success');
+      showToast(msg('toasts.profileUpdated', {}, true), 'success');
       setShowEdit(false);
     } catch {
       showToast('Could not save changes', 'error');
@@ -47,8 +47,10 @@ export default function ProfilePage({ user, trip, members, groups: propGroups, o
     }
   };
 
+  if (!dataLoaded) return <div className="page-profile"><SkeletonProfile /></div>;
+
   return (
-    <div style={{ background: 'var(--bg)' }}>
+    <div className="page-profile">
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '24px 20px 20px' }}>
         <div className="avatar-upload">
           <Avatar user={user} size="xl" />
@@ -64,37 +66,22 @@ export default function ProfilePage({ user, trip, members, groups: propGroups, o
         {trip && (
           <>
             <div className="heading-serif md mb-sm">My trip stats</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
-              <div className="card" style={{ textAlign: 'center', padding: '14px 12px' }}>
-                <Dollar size={18} color="var(--warm)" />
-                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 400, color: 'var(--warm)', marginTop: 4 }}>
-                  {formatMoney(expenses.filter(e => e.paid_by === user?.id).reduce((s, e) => s + (e.amount || 0), 0))}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16, alignItems: 'stretch' }}>
+              {[
+                { icon: <Dollar size={16} color="var(--warm)" />, value: formatMoney(expenses.filter(e => e.paid_by === user?.id).reduce((s, e) => s + (e.amount || 0), 0)), label: "I've paid" },
+                { icon: <Dollar size={16} color="var(--primary)" />, value: expenses.filter(e => e.paid_by === user?.id).length, label: 'my expenses' },
+                { icon: <ThumbUp size={16} color="var(--sage)" />, value: itinerary.filter(i => i.user_vote === 'like' || (i.votes && i.votes[user?.id])).length, label: 'votes cast' },
+                { icon: <Image size={16} color="var(--primary)" />, value: media.filter(p => p.uploaded_by === user?.id || p.user_id === user?.id).length, label: 'photos shared' },
+              ].map((s, i) => (
+                <div key={i} className="card" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', margin: 0 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--surface-alt)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{s.icon}</div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontFamily: 'var(--font-serif)', fontSize: 17, fontWeight: 400, lineHeight: 1.2, whiteSpace: 'nowrap' }}>{s.value}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{s.label}</div>
+                  </div>
                 </div>
-                <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>I've paid</div>
-              </div>
-              <div className="card" style={{ textAlign: 'center', padding: '14px 12px' }}>
-                <Dollar size={18} color="var(--primary)" />
-                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 400, color: 'var(--primary)', marginTop: 4 }}>
-                  {expenses.filter(e => e.paid_by === user?.id).length}
-                </div>
-                <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>my expenses</div>
-              </div>
-              <div className="card" style={{ textAlign: 'center', padding: '14px 12px' }}>
-                <ThumbUp size={18} color="var(--sage)" />
-                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 400, color: 'var(--sage)', marginTop: 4 }}>
-                  {itinerary.filter(i => i.user_vote === 'like' || (i.votes && i.votes[user?.id])).length}
-                </div>
-                <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>votes cast</div>
-              </div>
-              <div className="card" style={{ textAlign: 'center', padding: '14px 12px' }}>
-                <Image size={18} color="var(--primary)" />
-                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 400, color: 'var(--primary)', marginTop: 4 }}>
-                  {media.filter(p => p.uploaded_by === user?.id || p.user_id === user?.id).length}
-                </div>
-                <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>photos shared</div>
-              </div>
+              ))}
             </div>
-            <WaveDivider />
           </>
         )}
 

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { ChevronLeft, Plus } from '../components/Icons';
 import { Sheet, Toast, EmptyState, SkeletonVacationList } from '../components/Shared';
 import { api } from '../utils/api';
-import { formatDateRange, daysUntil, groupBy } from '../utils/helpers';
+import { formatDateRange, daysUntil, groupBy, msg } from '../utils/helpers';
 import { useApp } from '../App';
 
 export default function VacationsPage({ onBack, navigate, openTrip }) {
@@ -12,7 +12,7 @@ export default function VacationsPage({ onBack, navigate, openTrip }) {
   const [showCreate, setShowCreate] = useState(false);
   const [createForm, setCreateForm] = useState({ name: '', location: '', start_date: '', end_date: '' });
   const [toast, setToast] = useState(null);
-  const showToast = (msg, type = 'info') => { setToast({ msg, type }); setTimeout(() => setToast(null), 2500); };
+  const showToast = (text, type = 'info') => { setToast({ msg: text, type }); setTimeout(() => setToast(null), 2500); };
 
   useEffect(() => { api.get('/api/trips').then(r => { setTrips(Array.isArray(r.data) ? r.data : []); setTripsLoaded(true); }).catch(() => setTripsLoaded(true)); }, []);
 
@@ -72,7 +72,7 @@ export default function VacationsPage({ onBack, navigate, openTrip }) {
   };
 
   return (
-    <div style={{ background: 'var(--bg)' }}>
+    <div className="page-vacations">
       {!isDesktop && (
         <div className="topbar">
           <span className="topbar-title">Vacations</span>
@@ -100,8 +100,8 @@ export default function VacationsPage({ onBack, navigate, openTrip }) {
         {!tripsLoaded && <SkeletonVacationList count={2} />}
         {tripsLoaded && trips.length === 0 && (
           isAdmin
-            ? <EmptyState type="vacations" title="No trips yet" message="Someone's gotta plan the fun around here." action="Let's go" onAction={() => setShowCreate(true)} />
-            : <EmptyState type="vacations" title="No trips yet" message="Bug Nathan to set something up." />
+            ? <EmptyState type="vacations" title={msg('emptyStates.vacations.titles')} message={msg('emptyStates.vacations.messages')} action="Let's go" onAction={() => setShowCreate(true)} />
+            : <EmptyState type="vacations" title={msg('emptyStates.vacations.titles')} message={msg('emptyStates.vacations.messages')} />
         )}
       </div>
 
