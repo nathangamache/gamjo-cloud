@@ -3,12 +3,16 @@ import { Send, Mail } from '../components/Icons';
 import { msg } from '../utils/helpers';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [step, setStep] = useState('email');
+  const [email, setEmail] = useState(() => sessionStorage.getItem('gamjo-login-email') || '');
+  const [step, setStep] = useState(() => sessionStorage.getItem('gamjo-login-step') || 'email');
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
   const [sending, setSending] = useState(false);
   const inputRefs = useRef([]);
+
+  // Persist email and step so returning from inbox doesn't lose progress
+  useEffect(() => { sessionStorage.setItem('gamjo-login-email', email); }, [email]);
+  useEffect(() => { sessionStorage.setItem('gamjo-login-step', step); }, [step]);
 
   const handleSendCode = async (e) => {
     if (e) e.preventDefault();
@@ -77,6 +81,8 @@ export default function LoginPage() {
       });
       if (res.ok) {
         setStep('success');
+        sessionStorage.removeItem('gamjo-login-email');
+        sessionStorage.removeItem('gamjo-login-step');
         setTimeout(() => { window.location.href = '/'; }, 600);
       } else {
         const data = await res.json().catch(() => ({}));
