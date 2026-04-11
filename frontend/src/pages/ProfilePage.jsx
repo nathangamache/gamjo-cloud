@@ -6,7 +6,7 @@ import { api } from '../utils/api';
 import { formatMoney, msg } from '../utils/helpers';
 
 export default function ProfilePage({ user, trip, members, groups: propGroups, onLogout }) {
-  const { isAdmin, groups: ctxGroups, setUser, expenses: ctxExpenses, itinerary: ctxItinerary, media: ctxMedia, dataLoaded } = useApp();
+  const { isAdmin, isDesktop, groups: ctxGroups, setUser, expenses: ctxExpenses, itinerary: ctxItinerary, media: ctxMedia, dataLoaded, theme, toggleTheme, reduceMotion, toggleReduceMotion } = useApp();
   const groups = propGroups || ctxGroups || [];
   const expenses = ctxExpenses || [];
   const itinerary = ctxItinerary || [];
@@ -26,10 +26,14 @@ export default function ProfilePage({ user, trip, members, groups: propGroups, o
     if (!file) return;
     const fd = new FormData(); fd.append('file', file);
     try {
-      await api.upload('/api/auth/me/photo', fd);
-      showToast('Photo updated. Reload to see changes.', 'success');
+      const res = await api.upload('/api/auth/me/photo', fd);
+      const data = res.data;
+      if (data && setUser) {
+        setUser(prev => ({ ...prev, avatar_url: data.avatar_url }));
+      }
+      showToast('Photo updated!', 'success');
     } catch {
-      showToast('Profile photo upload is not available yet', 'error');
+      showToast('Failed to upload photo', 'error');
     }
     if (fileRef.current) fileRef.current.value = '';
   };
@@ -52,9 +56,9 @@ export default function ProfilePage({ user, trip, members, groups: propGroups, o
   return (
     <div className="page-profile">
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '24px 20px 20px' }}>
-        <div className="avatar-upload">
+        <div className="avatar-upload" onClick={() => fileRef.current?.click()} style={{ cursor: 'pointer' }}>
           <Avatar user={user} size="xl" />
-          <button className="avatar-upload-btn" onClick={() => fileRef.current?.click()}><Camera size={10} /></button>
+          <button className="avatar-upload-btn" onClick={e => { e.stopPropagation(); fileRef.current?.click(); }}><Camera size={10} /></button>
         </div>
         <input ref={fileRef} type="file" accept="image/*" onChange={handlePhotoUpload} style={{ display: 'none' }} />
         <div style={{ fontSize: 18, fontWeight: 600, marginTop: 10 }}>{user?.name}</div>
@@ -66,7 +70,7 @@ export default function ProfilePage({ user, trip, members, groups: propGroups, o
         {trip && (
           <>
             <div className="heading-serif md mb-sm">My trip stats</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16, alignItems: 'stretch' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? '1fr 1fr 1fr 1fr' : '1fr 1fr', gap: 8, marginBottom: 16, alignItems: 'stretch' }}>
               {[
                 { icon: <Dollar size={16} color="var(--warm)" />, value: formatMoney(expenses.filter(e => e.paid_by === user?.id).reduce((s, e) => s + (e.amount || 0), 0)), label: "I've paid" },
                 { icon: <Dollar size={16} color="var(--primary)" />, value: expenses.filter(e => e.paid_by === user?.id).length, label: 'my expenses' },
@@ -114,14 +118,52 @@ export default function ProfilePage({ user, trip, members, groups: propGroups, o
           <span style={{ fontSize: 14 }}>Edit profile</span><ChevronRight size={15} color="var(--text-muted)" />
         </div>
 
-        <button className="btn btn-danger" onClick={onLogout}><LogOut size={16} /> Sign out</button>
+        <div className="card mb-lg" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: 14 }}>Dark mode</span>
+          <button onClick={toggleTheme} style={{
+            width: 48, height: 28, borderRadius: 14, border: 'none', cursor: 'pointer', padding: 2,
+            background: theme === 'dark' ? 'var(--primary)' : 'var(--border)',
+            transition: 'background 0.2s', position: 'relative',
+          }}>
+            <div style={{
+              width: 24, height: 24, borderRadius: '50%', background: '#fff',
+              transition: 'transform 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,.2)',
+              transform: theme === 'dark' ? 'translateX(20px)' : 'translateX(0)',
+            }} />
+          </button>
+        </div>
+
+        <div className="card mb-lg" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <span style={{ fontSize: 14 }}>Reduce motion</span>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Turn off animations</div>
+          </div>
+          <button onClick={toggleReduceMotion} style={{
+            width: 48, height: 28, borderRadius: 14, border: 'none', cursor: 'pointer', padding: 2,
+            background: reduceMotion ? 'var(--primary)' : 'var(--border)',
+            transition: 'background 0.2s', position: 'relative',
+          }}>
+            <div style={{
+              width: 24, height: 24, borderRadius: '50%', background: '#fff',
+              transition: 'transform 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,.2)',
+              transform: reduceMotion ? 'translateX(20px)' : 'translateX(0)',
+            }} />
+          </button>
+        </div>
+
+        <button className="btn btn-danger" style={{ marginBottom: 40 }} onClick={onLogout}><LogOut size={16} /> Sign out</button>
       </div>
 
       {showEdit && (
         <Sheet onClose={() => setShowEdit(false)} title="Edit profile">
           <div className="form-group"><label className="label">Name</label><input className="form-input" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} placeholder="Your name" /></div>
           <div className="form-group"><label className="label">Email</label><input className="form-input" type="email" value={editForm.email} disabled style={{ opacity: 0.6 }} /><div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>Email can only be changed by an admin</div></div>
-          <div className="form-group"><label className="label">Profile photo</label><div className="upload-zone" style={{ cursor: 'pointer' }} onClick={() => fileRef.current?.click()}><Camera size={20} color="var(--text-muted)" /><div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>Tap to change your photo</div></div></div>
+          <div className="form-group"><label className="label">Profile photo</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer' }} onClick={() => fileRef.current?.click()}>
+              <Avatar user={user} size="lg" />
+              <div style={{ fontSize: 14, color: 'var(--primary)', fontWeight: 500 }}>Tap to change photo</div>
+            </div>
+          </div>
           <button className="btn btn-primary" onClick={handleSaveProfile}><Check size={15} /> Save changes</button>
         </Sheet>
       )}

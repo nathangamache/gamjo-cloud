@@ -379,7 +379,7 @@ export default function AdminPage({ trip, members, groups: propGroups, setMember
           <div className="desk-header-title">Admin</div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn-add" onClick={openInvite}><Plus size={13} /> Invite</button>
-            <button className="btn-add" style={{ background: 'linear-gradient(135deg, var(--vote-bg), #FFF8ED)', color: 'var(--vote-text)', border: 'none', boxShadow: '0 1px 4px rgba(140,120,100,0.08)' }} onClick={() => setShowPushVote(true)}><Vote size={13} /> Push a vote</button>
+            <button className="btn-add" style={{ background: 'var(--vote-bg)', color: 'var(--vote-text)', border: '1px solid var(--vote-border)', boxShadow: '0 1px 4px rgba(140,120,100,0.08)' }} onClick={() => setShowPushVote(true)}><Vote size={13} /> Push a vote</button>
           </div>
         </div>
       )}

@@ -31,9 +31,10 @@ export function getInitials(name) {
 }
 export function Avatar({ user, size = '', className = '' }) {
   const s = { sm: 'sm', lg: 'lg', xl: 'xl' }[size] || '';
+  const photo = user?.avatar_url;
   return (
     <div className={`avatar ${s} ${className}`} style={{ background: getAvatarColor(user?.id || 0) }}>
-      {user?.profile_photo ? <img src={user.profile_photo} alt={user.name} /> : getInitials(user?.name || user?.email || '?')}
+      {photo ? <img src={photo} alt={user?.name || ''} /> : getInitials(user?.name || user?.email || '?')}
     </div>
   );
 }
@@ -119,7 +120,7 @@ function DesktopSidebar({ tab, navigate, user, isAdmin, isGlobalAdmin, onLogout,
   const items = (inTrip ? NAV_ITEMS.filter(i => !i.adminOnly || isAdmin) : HOME_NAV.filter(i => !i.adminOnly || isGlobalAdmin));
   return (
     <aside className="desktop-sidebar">
-      <div className="sidebar-logo">Gamjo</div>
+      <div className="sidebar-logo">GamJo</div>
       <div className="sidebar-user">
         <Avatar user={user} />
         <div><div className="sidebar-user-name">{user?.name || 'User'}</div></div>
@@ -169,6 +170,25 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isGlobalAdmin, setIsGlobalAdmin] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [theme, setThemeState] = useState(() => localStorage.getItem('gamjo-theme') || 'light');
+  const [reduceMotion, setReduceMotionState] = useState(() => localStorage.getItem('gamjo-reduce-motion') === 'true');
+  const toggleTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setThemeState(next);
+    localStorage.setItem('gamjo-theme', next);
+    document.documentElement.setAttribute('data-theme', next);
+  };
+  const toggleReduceMotion = () => {
+    const next = !reduceMotion;
+    setReduceMotionState(next);
+    localStorage.setItem('gamjo-reduce-motion', String(next));
+    document.documentElement.setAttribute('data-reduce-motion', String(next));
+  };
+  // Apply on mount
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.setAttribute('data-reduce-motion', String(reduceMotion));
+  }, []);
   const activeTrip = trip && isTripCurrent(trip);
   const singleActiveTrip = activeTrip && allTrips.filter(t => isTripCurrent(t)).length === 1;
   const inTrip = !!trip && (
@@ -221,6 +241,8 @@ export default function App() {
   const handleLogout = useCallback(async () => {
     if (!await confirm({ title: msg('confirms.signOut.titles', {}, true), message: msg('confirms.signOut.messages', {}, true), confirmText: msg('confirms.signOut.confirmText', {}, true), danger: true })) return;
     try { await logout(); } catch {}
+    window.history.pushState({}, '', '/');
+    window.location.reload();
   }, [logout, confirm]);
   useEffect(() => {
     const h = () => { const r = parseRoute(); setPage(r.page); setAdminTab(r.adminTab); };
@@ -249,7 +271,7 @@ export default function App() {
       setDataLoaded(true);
     }).catch(err => { console.error('Failed to fetch trips:', err); setDataLoaded(true); });
   }, [user]);
-  if (loading) return <div className="app" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}><div className="heading-serif lg" style={{ color: 'var(--primary)' }}>Gamjo</div></div>;
+  if (loading) return <div className="app" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}><div className="heading-serif lg" style={{ color: 'var(--primary)' }}>GamJo</div></div>;
   if (window.location.pathname === '/verify') return <VerifyPage />;
   if (!user) {
     const p = window.location.pathname;
@@ -291,7 +313,7 @@ export default function App() {
     }
   };
   return (
-    <AppContext.Provider value={{ user, setUser, trip, allTrips, members, groups, expenses, itinerary, media, isAdmin, isGlobalAdmin, isDesktop, inTrip, dataLoaded, navigate, openTrip, setTrip, setMembers, setGroups, setExpenses, setItinerary, setMedia, refreshExpenses, refreshItinerary, refreshMedia, refreshMembers, refreshGroups }}>
+    <AppContext.Provider value={{ user, setUser, trip, allTrips, members, groups, expenses, itinerary, media, isAdmin, isGlobalAdmin, isDesktop, inTrip, dataLoaded, theme, toggleTheme, reduceMotion, toggleReduceMotion, navigate, openTrip, setTrip, setMembers, setGroups, setExpenses, setItinerary, setMedia, refreshExpenses, refreshItinerary, refreshMedia, refreshMembers, refreshGroups }}>
       <div className="app">
         {isDesktop && <DesktopSidebar tab={page} navigate={navigate} user={user} isAdmin={isAdmin} isGlobalAdmin={isGlobalAdmin} onLogout={handleLogout} inTrip={inTrip} />}
         <div className="page-content">{renderPage()}</div>

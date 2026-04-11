@@ -189,7 +189,7 @@ async def get_me(user: User = Depends(get_current_user)):
     return {
         "id": user.id, "name": user.name, "email": user.email,
         "avatar_url": getattr(user, 'avatar_url', None),
-        "profile_photo": getattr(user, 'avatar_url', None),
+        "onboarded": getattr(user, 'onboarded', True),
         "created_at": str(user.created_at) if hasattr(user, 'created_at') and user.created_at else None,
     }
 
@@ -200,12 +200,13 @@ async def update_me(request: Request, user: User = Depends(get_current_user), db
     data = await request.json()
     if "name" in data:
         user.name = data["name"]
+    if "onboarded" in data and hasattr(user, 'onboarded'):
+        user.onboarded = data["onboarded"]
     await db.commit()
     await db.refresh(user)
     return {
         "id": user.id, "name": user.name, "email": user.email,
         "avatar_url": getattr(user, 'avatar_url', None),
-        "profile_photo": getattr(user, 'avatar_url', None),
     }
 
 
@@ -217,11 +218,11 @@ async def upload_profile_photo(file: UploadFile = File(...), user: User = Depend
     filepath = f"{UPLOAD_DIR}/avatars/{filename}"
     with open(filepath, "wb") as f:
         shutil.copyfileobj(file.file, f)
-    url = f"/uploads/avatars/{filename}"
+    url = f"/uploads/avatars/{filename}?t={int(__import__('time').time())}"
     if hasattr(user, 'avatar_url'):
-        user.avatar_url = url
+        user.avatar_url = f"/uploads/avatars/{filename}"
     await db.commit()
-    return {"url": url, "message": "Photo uploaded"}
+    return {"avatar_url": url, "message": "Photo uploaded"}
 
 
 @router.post("/logout")

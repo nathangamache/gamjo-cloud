@@ -112,7 +112,8 @@ export default function ExpensesPage({ trip, user, members, groups: propGroups, 
   }, [balances]);
 
   const handleAdd = async () => {
-    if (!form.title || !form.amount) return;
+    if (!form.title || !form.amount) { showToast('Title and amount are required', 'error'); return; }
+    if (Number(form.amount) <= 0) { showToast('Amount must be greater than zero', 'error'); return; }
     setSubmitting(true);
     try {
       const res = await api.post(`/api/trips/${trip.id}/expenses`, { ...form, amount: parseFloat(form.amount) });
@@ -236,11 +237,26 @@ export default function ExpensesPage({ trip, user, members, groups: propGroups, 
               </div>
             </div>
             <div className="desk-side-col">
-              <div className="summary-card blue mb-md">
-                <div className="summary-card-label">Trip total</div><div className="summary-card-value">{formatMoney(total)}</div>
-                <div className="summary-card-meta">{expenses.length} expenses &middot; {groups.length} groups</div>
-                <div className="summary-card-action" onClick={() => setShowSplits(true)}>Preview group splits</div>
-              </div>
+              {tab === 0 && (
+                <div className="summary-card blue mb-md">
+                  <div className="summary-card-label">Trip total</div><div className="summary-card-value">{formatMoney(total)}</div>
+                  <div className="summary-card-meta">{expenses.length} expenses &middot; {groups.length} groups</div>
+                  <div className="summary-card-action" onClick={() => setShowSplits(true)}>Preview group splits</div>
+                </div>
+              )}
+              {tab === 1 && (
+                <div className="stat-grid mb-md" style={{ gridTemplateColumns: '1fr' }}>
+                  <div className="stat-card"><div className="stat-value">{formatMoney(myTotal)}</div><div className="stat-label">my total paid</div></div>
+                  <div className="stat-card"><div className="stat-value">{myExpenses.length}</div><div className="stat-label">my receipts</div></div>
+                </div>
+              )}
+              {tab === 2 && myGroup && (
+                <div className="summary-card teal mb-md">
+                  <div className="summary-card-label">{myGroup.name}</div>
+                  <div className="summary-card-value" style={{ fontSize: 26 }}>{formatMoney(myGroupTotal)}</div>
+                  <div className="summary-card-meta">Total paid by group &middot; {formatPct(myGroup.percentage)} share</div>
+                </div>
+              )}
             </div>
           </div>
         ) : (

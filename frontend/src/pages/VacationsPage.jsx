@@ -52,8 +52,8 @@ export default function VacationsPage({ onBack, navigate, openTrip }) {
     return (
       <div className="vacation-card" style={{ marginBottom: 12, cursor: 'pointer', borderRadius: 16, overflow: 'hidden' }} onClick={() => handleSelectTrip(t)}>
         <div style={{ position: 'relative', height: compact ? 100 : 140, background: cardBanner ? `url(${cardBanner}) center/cover` : `linear-gradient(135deg, #1d3550, #3a6a8c)` }}>
-          {/* White gradient overlay for text readability */}
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(255,255,255,1.0) 0%, rgba(255,255,255,0.6) 40%, rgba(255,255,255,0.1) 100%)' }} />
+          {/* Gradient overlay for text readability */}
+          <div className="vacation-card-fade" />
           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: compact ? '10px 16px' : '14px 18px' }}>
             <div style={{ fontWeight: 600, fontSize: compact ? 15 : 17, color: 'var(--text)', lineHeight: 1.2 }}>{t.name}</div>
             <div style={{ fontSize: compact ? 11 : 12, color: 'var(--text-secondary)', marginTop: 2 }}>{t.location} &middot; {formatDateRange(t.start_date, t.end_date)}</div>
@@ -62,7 +62,7 @@ export default function VacationsPage({ onBack, navigate, openTrip }) {
         <div style={{ padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: 'none', background: 'var(--surface)' }}>
           <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{t.member_count || 0} travelers</span>
           <div style={{ display: 'flex', gap: 6 }}>
-            {days !== null && days > 0 && days <= 7 && <span style={{ padding: '4px 12px', borderRadius: 12, background: 'linear-gradient(135deg, #FDF6E7, #F9E8D0)', color: 'var(--warm)', fontSize: 13, fontWeight: 600 }}>{days} days!</span>}
+            {days !== null && days > 0 && days <= 7 && <span style={{ padding: '4px 12px', borderRadius: 12, background: 'var(--warm-light)', color: 'var(--warm)', fontSize: 13, fontWeight: 600 }}>{days} days!</span>}
             {days !== null && days > 7 && <span style={{ padding: '4px 12px', borderRadius: 12, background: 'var(--primary-light)', color: 'var(--primary)', fontSize: 13, fontWeight: 500 }}>{days} days away</span>}
             {days !== null && days === 0 && <span style={{ padding: '4px 12px', borderRadius: 12, background: 'var(--sage-light)', color: 'var(--sage)', fontSize: 13, fontWeight: 600 }}>Today!</span>}
           </div>

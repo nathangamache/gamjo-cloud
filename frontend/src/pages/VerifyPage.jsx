@@ -30,7 +30,7 @@ export default function VerifyPage() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
       <div style={{ textAlign: 'center', padding: 40 }}>
-        <div style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: 'var(--primary)', marginBottom: 16 }}>Gamjo</div>
+        <div style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: 'var(--primary)', marginBottom: 16 }}>GamJo</div>
         {status === 'verifying' && <div style={{ color: 'var(--text-secondary)' }}>Signing you in...</div>}
         {status === 'success' && <div style={{ color: 'var(--sage)', fontWeight: 500 }}>You're in! Redirecting...</div>}
         {status === 'error' && (

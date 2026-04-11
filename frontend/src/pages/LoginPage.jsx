@@ -16,16 +16,23 @@ export default function LoginPage() {
     setError('');
     setSending(true);
     try {
-      await fetch('/api/auth/send-code', {
+      const res = await fetch('/api/auth/send-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
         credentials: 'include',
       });
-    } catch {}
+      if (res.ok) {
+        setStep('code');
+        setCode(['', '', '', '', '', '']);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setError(data.detail || 'Could not send code. Make sure you have an account.');
+      }
+    } catch {
+      setError('Something went wrong. Please try again.');
+    }
     setSending(false);
-    setStep('code');
-    setCode(['', '', '', '', '', '']);
   };
 
   useEffect(() => {
@@ -90,12 +97,12 @@ export default function LoginPage() {
   return (
     <div className="login-page">
       <div className="login-hero" style={{ display: 'none' }}>
-        <div style={{ fontFamily: 'var(--font-serif)', fontSize: 48, fontWeight: 400, color: 'var(--primary)', letterSpacing: -1, marginBottom: 8 }}>Gamjo</div>
+        <div style={{ fontFamily: 'var(--font-serif)', fontSize: 48, fontWeight: 400, color: 'var(--primary)', letterSpacing: -1, marginBottom: 8 }}>GamJo</div>
         <div style={{ fontSize: 18, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 16 }}>Plan the fun. Split the tab.<br />Where the family plans vacations and questionable decisions.</div>
         <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Private. Invite-only. What happens up north stays up north.</div>
       </div>
       <div className="login-mobile-brand" style={{ textAlign: 'center', marginBottom: 36 }}>
-        <div style={{ fontFamily: 'var(--font-serif)', fontSize: 36, fontWeight: 400, color: 'var(--primary)', letterSpacing: -1 }}>Gamjo</div>
+        <div style={{ fontFamily: 'var(--font-serif)', fontSize: 36, fontWeight: 400, color: 'var(--primary)', letterSpacing: -1 }}>GamJo</div>
         <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>{msg('login.taglines')}</div>
       </div>
       <div className="login-card">
@@ -120,7 +127,7 @@ export default function LoginPage() {
           <div>
             <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}><Mail size={22} color="var(--primary)" /></div>
             <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, marginBottom: 4, textAlign: 'center' }}>Punch in your digits</div>
-            <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 24, textAlign: 'center' }}>Check your email. Code sent to <strong>{email}</strong></div>
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 24, textAlign: 'center' }}>Check your email. Code sent to <strong>{email}</strong><br /><span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Not seeing it? Check your spam folder.</span></div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 8 }} onPaste={handlePaste}>
               {code.map((digit, idx) => (
                 <input key={idx} ref={el => inputRefs.current[idx] = el} type="text" inputMode="numeric" maxLength={1} value={digit}

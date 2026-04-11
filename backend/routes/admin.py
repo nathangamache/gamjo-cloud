@@ -81,6 +81,8 @@ async def invite_user(
 
     if not target_user:
         target_user = User(id=uuid4(), email=email, name=name or email.split("@")[0])
+        if hasattr(target_user, 'onboarded'):
+            target_user.onboarded = False
         db.add(target_user)
         await db.flush()
     elif name and not target_user.name:

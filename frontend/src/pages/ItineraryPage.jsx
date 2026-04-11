@@ -16,7 +16,6 @@ export default function ItineraryPage({ trip, user, items: propItems, setItems: 
   const [showDayTitle, setShowDayTitle] = useState(null); // { date, title } or null
   const [dayTitleInput, setDayTitleInput] = useState('');
   const [toast, setToast] = useState(null);
-  const [voterTip, setVoterTip] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({ title: '', description: '', date: '', time: '', location: '' });
   const [editForm, setEditForm] = useState({ title: '', description: '', date: '', time: '', location: '' });
@@ -138,7 +137,7 @@ export default function ItineraryPage({ trip, user, items: propItems, setItems: 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
                   <span className="label" style={{ color: 'var(--warm)' }}>{date === 'No date' ? date : formatDate(date)}</span>
-                  {title && <span style={{ fontFamily: 'var(--font-serif)', fontSize: 15, fontWeight: 500, color: 'var(--primary)' }}>— {title}</span>}
+                  {title && <span className="day-title-label">— {title}</span>}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   {date !== 'No date' && !title && (
@@ -147,10 +146,7 @@ export default function ItineraryPage({ trip, user, items: propItems, setItems: 
                     </button>
                   )}
                   {date !== 'No date' && title && (
-                    <>
-                      <button className="icon-btn" onClick={() => openDayTitle(date)} aria-label="Edit day title"><Edit size={14} color="var(--text-muted)" /></button>
-                      <button className="icon-btn" onClick={() => deleteDayTitle(date)} aria-label="Delete day title"><Trash size={14} color="var(--text-muted)" /></button>
-                    </>
+                    <button className="icon-btn" onClick={() => openDayTitle(date)} aria-label="Edit day title"><Edit size={14} color="var(--text-muted)" /></button>
                   )}
                 </div>
               </div>
@@ -160,10 +156,8 @@ export default function ItineraryPage({ trip, user, items: propItems, setItems: 
                 const userVote = item.user_vote; // 'like', 'dislike', or null
                 const likeVoters = getVoterNames(item, 'like');
                 const dislikeVoters = getVoterNames(item, 'dislike');
-                const showLikeTip = voterTip === `${item.id}-like`;
-                const showDislikeTip = voterTip === `${item.id}-dislike`;
                 return (
-              <div key={item.id} className={`card itin-card card-accent-${item.status === 'final' ? 'confirmed' : item.status === 'voting' ? 'voting' : 'proposed'}`} style={{ marginBottom: 8, cursor: 'pointer', ...(item.pushed ? { background: 'linear-gradient(135deg, #FFFCF5, #FFF8ED)', boxShadow: '0 2px 12px rgba(139, 112, 50, 0.12), inset 0 0 0 1px var(--vote-border)' } : {}) }} onClick={() => openEdit(item)}>
+              <div key={item.id} className={`card itin-card card-accent-${item.status === 'final' ? 'confirmed' : item.status === 'voting' ? 'voting' : 'proposed'} ${item.pushed ? 'vote-spotlight-card' : ''}`} style={{ marginBottom: 8, cursor: 'pointer' }} onClick={() => item.status !== 'final' && openEdit(item)}>
                 {item.pushed && <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--vote-text)', letterSpacing: '0.04em', marginBottom: 6, textTransform: 'uppercase' }}>Vote spotlight</div>}
                 <div className="itin-card-row" onClick={e => e.stopPropagation()}>
                   <div className="itin-card-info">
@@ -173,25 +167,21 @@ export default function ItineraryPage({ trip, user, items: propItems, setItems: 
                     {item.location && <span className="itin-card-loc" onClick={() => openMaps(item.location)} style={{ fontSize: 13, color: 'var(--primary)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 3 }}><Pin size={12} />{item.location}</span>}
                   </div>
                   <div className="itin-card-actions">
-                    {statusBadge(item.status)}
-                    {item.status !== 'final' && isAdmin && <button className="btn-sm btn-ghost" style={{ borderColor: 'var(--primary)', color: 'var(--primary)' }} onClick={() => handleLock(item.id)}><Lock size={13} /> Lock</button>}
-                    {item.status === 'final' && isAdmin && <button className="btn-sm btn-ghost" style={{ borderColor: 'var(--warm)', color: 'var(--warm)' }} onClick={() => handleUnlock(item.id)}><Lock size={13} /> Unlock</button>}
-                    <button className="icon-btn" onClick={e => { e.stopPropagation(); openEdit(item); }} aria-label="Edit item"><Edit size={16} color="var(--text-muted)" /></button>
-                    {isAdmin && <button className="icon-btn" onClick={e => { e.stopPropagation(); handleDelete(item.id); }} aria-label="Delete item"><Trash size={16} color="var(--text-muted)" /></button>}
+                    {item.status !== 'final' && <button className="icon-btn" onClick={e => { e.stopPropagation(); openEdit(item); }} aria-label="Edit item"><Edit size={16} color="var(--text-muted)" /></button>}
+                    {item.status !== 'final' && isAdmin && <button className="icon-btn" onClick={e => { e.stopPropagation(); handleDelete(item.id); }} aria-label="Delete item"><Trash size={16} color="var(--text-muted)" /></button>}
+                    {isAdmin && <button className="icon-btn" onClick={e => { e.stopPropagation(); item.status === 'final' ? handleUnlock(item.id) : handleLock(item.id); }} aria-label={item.status === 'final' ? 'Unlock' : 'Lock'}><Lock size={16} color={item.status === 'final' ? 'var(--warm)' : 'var(--text-muted)'} /></button>}
                   </div>
                 </div>
                 {/* Reaction chips */}
                 {item.status !== 'final' && (
-                  <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }} onClick={e => e.stopPropagation()}>
+                  <div style={{ marginTop: 6 }} onClick={e => e.stopPropagation()}>
+                    <div className="reaction-row">
                     {/* Like chip */}
                     <button
                       onClick={() => handleVote(item.id, true)}
-                      onMouseEnter={() => likeVoters.length > 0 && setVoterTip(`${item.id}-like`)}
-                      onMouseLeave={() => setVoterTip(null)}
                       className="reaction-chip"
                       aria-label={`Like${likeCount > 0 ? `, ${likeCount} votes` : ''}`}
                       style={{
-                        position: 'relative',
                         display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                         padding: '8px 14px', borderRadius: 24,
                         fontSize: 14, fontWeight: 500, cursor: 'pointer',
@@ -203,21 +193,13 @@ export default function ItineraryPage({ trip, user, items: propItems, setItems: 
                     >
                       <ThumbUp size={18} />
                       {likeCount > 0 && <span>{likeCount}</span>}
-                      {showLikeTip && likeVoters.length > 0 && (
-                        <div style={{ position: 'absolute', bottom: '100%', left: 0, marginBottom: 6, padding: '6px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--text)', color: '#fff', fontSize: 13, whiteSpace: 'nowrap', zIndex: 10, boxShadow: 'var(--shadow-lg)', pointerEvents: 'none' }}>
-                          {likeVoters.join(', ')}
-                        </div>
-                      )}
                     </button>
                     {/* Dislike chip */}
                     <button
                       onClick={() => handleVote(item.id, false)}
-                      onMouseEnter={() => dislikeVoters.length > 0 && setVoterTip(`${item.id}-dislike`)}
-                      onMouseLeave={() => setVoterTip(null)}
                       className="reaction-chip reaction-dislike"
                       aria-label={`Dislike${dislikeCount > 0 ? `, ${dislikeCount} votes` : ''}`}
                       style={{
-                        position: 'relative',
                         display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                         padding: '8px 14px', borderRadius: 24,
                         fontSize: 14, fontWeight: 500, cursor: 'pointer',
@@ -229,12 +211,16 @@ export default function ItineraryPage({ trip, user, items: propItems, setItems: 
                     >
                       <ThumbDown size={18} />
                       {dislikeCount > 0 && <span>{dislikeCount}</span>}
-                      {showDislikeTip && dislikeVoters.length > 0 && (
-                        <div style={{ position: 'absolute', bottom: '100%', left: 0, marginBottom: 6, padding: '6px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--text)', color: '#fff', fontSize: 13, whiteSpace: 'nowrap', zIndex: 10, boxShadow: 'var(--shadow-lg)', pointerEvents: 'none' }}>
-                          {dislikeVoters.join(', ')}
-                        </div>
-                      )}
                     </button>
+                    </div>
+                    {/* Voter names - always visible */}
+                    {(likeVoters.length > 0 || dislikeVoters.length > 0) && (
+                      <div style={{ marginTop: 6, fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                        {likeVoters.length > 0 && <span style={{ color: 'var(--sage)' }}>{likeVoters.join(', ')}</span>}
+                        {likeVoters.length > 0 && dislikeVoters.length > 0 && <span> · </span>}
+                        {dislikeVoters.length > 0 && <span style={{ color: 'var(--danger)' }}>{dislikeVoters.join(', ')}</span>}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

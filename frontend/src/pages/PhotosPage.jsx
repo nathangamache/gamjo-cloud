@@ -16,25 +16,31 @@ export default function PhotosPage({ trip, user, navigate, photos: propPhotos, s
   const [toast, setToast] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({ done: 0, total: 0 });
+  const [pendingFiles, setPendingFiles] = useState([]);
   const fileRef = useRef(null);
   const showToast = (text, type = 'info') => { setToast({ msg: text, type }); setTimeout(() => setToast(null), 2500); };
   const confirm = useConfirm();
 
-  const handleFileSelect = async (e) => {
+  const handleFileSelect = (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
+    setPendingFiles(prev => [...prev, ...files]);
+    if (fileRef.current) fileRef.current.value = '';
+  };
+  const removePending = (idx) => setPendingFiles(prev => prev.filter((_, i) => i !== idx));
+  const handleUpload = async () => {
+    if (!pendingFiles.length) return;
     setUploading(true);
-    setUploadProgress({ done: 0, total: files.length });
+    setUploadProgress({ done: 0, total: pendingFiles.length });
     let uploaded = 0;
-    for (const file of files) {
+    for (const file of pendingFiles) {
       const fd = new FormData(); fd.append('file', file);
       try { await api.upload(`/api/trips/${trip.id}/media`, fd); uploaded++; } catch {}
-      setUploadProgress({ done: uploaded, total: files.length });
+      setUploadProgress({ done: uploaded, total: pendingFiles.length });
     }
     if (refreshMedia) await refreshMedia();
-    setShowUpload(false); setUploading(false);
+    setShowUpload(false); setUploading(false); setPendingFiles([]);
     showToast(msg('toasts.photoUploaded', { count: uploaded, s: uploaded !== 1 ? 's' : '', ies: uploaded !== 1 ? 'ies' : 'y' }, true), 'success');
-    if (fileRef.current) fileRef.current.value = '';
   };
 
   const canEdit = (p) => isAdmin || p.uploaded_by === user?.id || p.user_id === user?.id;
@@ -53,6 +59,8 @@ export default function PhotosPage({ trip, user, navigate, photos: propPhotos, s
 
   const grouped = groupBy(photos, p => p.date || 'Unknown');
 
+  const touchStart = useRef(null);
+  
   return (
     <div className="page-photos">
       {!isDesktop && <div className="topbar"><span className="topbar-title">Photos</span><button className="btn-add" onClick={() => setShowUpload(true)}><Plus size={13} /> Upload</button></div>}
@@ -86,13 +94,48 @@ export default function PhotosPage({ trip, user, navigate, photos: propPhotos, s
         {!isDesktop && photos.length > 0 && <button className="btn btn-secondary mt-md" onClick={() => navigate('gallery')}><Image size={15} /> View gallery grid</button>}
       </div>
       <input ref={fileRef} type="file" accept="image/*" multiple onChange={handleFileSelect} style={{ display: 'none' }} />
-      {showUpload && <Sheet onClose={() => !uploading && setShowUpload(false)} title="Upload photos"><div className="upload-zone" style={{ marginBottom: 16, cursor: uploading ? 'default' : 'pointer' }} onClick={() => !uploading && fileRef.current?.click()}>{uploading ? <div><div style={{ fontSize: 15, color: 'var(--primary)', fontWeight: 500, marginBottom: 8 }}>{uploadProgress.done} of {uploadProgress.total} uploaded</div><div style={{ width: '100%', height: 6, background: 'var(--surface-alt)', borderRadius: 3, overflow: 'hidden' }}><div style={{ width: `${uploadProgress.total ? (uploadProgress.done / uploadProgress.total) * 100 : 0}%`, height: '100%', background: 'var(--sage)', borderRadius: 3, transition: 'width 0.3s' }} /></div></div> : <><Camera size={24} color="var(--text-muted)" /><div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-secondary)', marginTop: 6 }}>Tap to select photos</div><div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>You can select multiple at once</div></>}</div></Sheet>}
+      {showUpload && <Sheet onClose={() => { if (!uploading) { setShowUpload(false); setPendingFiles([]); } }} title="Upload photos">
+        {uploading ? (
+          <div style={{ padding: '12px 0' }}>
+            <div style={{ fontSize: 15, color: 'var(--primary)', fontWeight: 500, marginBottom: 8 }}>{uploadProgress.done} of {uploadProgress.total} uploaded</div>
+            <div style={{ width: '100%', height: 6, background: 'var(--surface-alt)', borderRadius: 3, overflow: 'hidden' }}>
+              <div style={{ width: `${uploadProgress.total ? (uploadProgress.done / uploadProgress.total) * 100 : 0}%`, height: '100%', background: 'var(--sage)', borderRadius: 3, transition: 'width 0.3s' }} />
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="upload-zone" style={{ marginBottom: 16, cursor: 'pointer' }} onClick={() => fileRef.current?.click()}>
+              <Camera size={24} color="var(--text-muted)" />
+              <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-secondary)', marginTop: 6 }}>{pendingFiles.length > 0 ? 'Tap to add more' : 'Tap to select photos'}</div>
+              <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>You can select multiple at once</div>
+            </div>
+            {pendingFiles.length > 0 && (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 16 }}>
+                  {pendingFiles.map((file, i) => (
+                    <div key={i} style={{ position: 'relative', aspectRatio: 1, borderRadius: 8, overflow: 'hidden' }}>
+                      <img src={URL.createObjectURL(file)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <button onClick={() => removePending(i)} style={{ position: 'absolute', top: 4, right: 4, width: 22, height: 22, borderRadius: '50%', background: 'rgba(0,0,0,.5)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                        <X size={12} color="#fff" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <button className="btn btn-primary" onClick={handleUpload}>Upload {pendingFiles.length} photo{pendingFiles.length !== 1 ? 's' : ''}</button>
+              </>
+            )}
+          </>
+        )}
+      </Sheet>}
       {editingPhoto && <Sheet onClose={() => setEditingPhoto(null)} title="Edit photo details">{editingPhoto.url && <div style={{ borderRadius: 10, overflow: 'hidden', marginBottom: 16 }}><img src={editingPhoto.url} alt="" style={{ width: '100%', maxHeight: 200, objectFit: 'cover' }} /></div>}<div className="form-group"><label className="label">Caption</label><input className="form-input" value={editForm.caption} onChange={e => setEditForm(f => ({ ...f, caption: e.target.value }))} placeholder="What's in this photo?" /></div><div className="form-group"><label className="label">Date taken</label><input className="form-input" type="date" value={editForm.date} onChange={e => setEditForm(f => ({ ...f, date: e.target.value }))} /></div><div className="form-group"><label className="label">Location</label><input className="form-input" value={editForm.location} onChange={e => setEditForm(f => ({ ...f, location: e.target.value }))} placeholder="e.g. West Bay Beach" /></div><div style={{ display: 'flex', gap: 8 }}><button className="btn btn-primary" style={{ flex: 1 }} onClick={saveEdit}>Save changes</button><button className="btn btn-danger" style={{ flex: 0, width: 'auto', padding: '14px 16px' }} onClick={() => handleDelete(editingPhoto.id)}><Trash size={16} /></button></div></Sheet>}
       {viewingPhoto && (
         <div className="sheet-backdrop" onClick={() => setViewingPhoto(null)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,.9)' }}>
           <div onClick={e => e.stopPropagation()} style={{ position: 'relative', maxWidth: '95vw', maxHeight: '90vh', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <button onClick={() => setViewingPhoto(null)} style={{ position: 'absolute', top: -12, right: -12, width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,.15)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10 }}><X size={18} color="#fff" /></button>
-            <img src={viewingPhoto.url} alt={viewingPhoto.caption} style={{ maxWidth: '95vw', maxHeight: '80vh', borderRadius: 8, objectFit: 'contain' }} />
+            <img src={viewingPhoto.url} alt={viewingPhoto.caption} style={{ maxWidth: '95vw', maxHeight: '80vh', borderRadius: 8, objectFit: 'contain', touchAction: 'pan-y' }}
+              onTouchStart={e => { touchStart.current = e.touches[0].clientX; }}
+              onTouchEnd={e => { if (touchStart.current === null) return; const diff = e.changedTouches[0].clientX - touchStart.current; touchStart.current = null; if (Math.abs(diff) < 50) return; if (diff < 0) viewNext(); else viewPrev(); }}
+            />
             <div style={{ marginTop: 12, textAlign: 'center', color: '#fff' }}><div style={{ fontSize: 15, fontWeight: 500 }}>{viewingPhoto.caption || 'Untitled'}</div><div style={{ fontSize: 13, color: 'rgba(255,255,255,.6)', marginTop: 4 }}>{viewingPhoto.uploaded_by_name || 'Someone'}{viewingPhoto.date ? ` \u00b7 ${formatDate(viewingPhoto.date)}` : ''}{viewingPhoto.location ? ` \u00b7 ${viewingPhoto.location}` : ''}</div></div>
             {photos.findIndex(p => p.id === viewingPhoto.id) > 0 && <button onClick={viewPrev} style={{ position: 'absolute', left: -20, top: '45%', width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,.15)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><ChevronLeft size={20} color="#fff" /></button>}
             {photos.findIndex(p => p.id === viewingPhoto.id) < photos.length - 1 && <button onClick={viewNext} style={{ position: 'absolute', right: -20, top: '45%', width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,.15)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><ChevronRight size={20} color="#fff" /></button>}

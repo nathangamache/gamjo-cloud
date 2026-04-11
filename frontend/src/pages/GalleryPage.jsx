@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ChevronLeft, Image, Edit, Trash, X } from '../components/Icons';
+import { useState, useRef } from 'react';
+import { ChevronLeft, Image, Edit, Trash, X, Check } from '../components/Icons';
 import { Sheet, Toast, useConfirm, EmptyState } from '../components/Shared';
 import { api } from '../utils/api';
 import { formatDate, groupBy } from '../utils/helpers';
@@ -13,7 +13,10 @@ export default function GalleryPage({ trip, user, onBack, photos: propPhotos, se
   const [viewingPhoto, setViewingPhoto] = useState(null);
   const [editForm, setEditForm] = useState({ caption: '', date: '', location: '' });
   const [toast, setToast] = useState(null);
-  const showToast = (msg, type = 'info') => { setToast({ msg, type }); setTimeout(() => setToast(null), 2500); };
+  const showToast = (text, type = 'info') => { setToast({ msg: text, type }); setTimeout(() => setToast(null), 2500); };
+  const touchStart = useRef(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState(new Set());
   const confirm = useConfirm();
 
   const canEdit = (p) => isAdmin || p.uploaded_by === user?.id || p.user_id === user?.id;
@@ -24,28 +27,52 @@ export default function GalleryPage({ trip, user, onBack, photos: propPhotos, se
   const saveEdit = async () => { if (!editingPhoto) return; try { await api.put(`/api/trips/${trip.id}/media/${editingPhoto.id}`, editForm); setPhotos(prev => prev.map(p => p.id === editingPhoto.id ? { ...p, ...editForm } : p)); setEditingPhoto(null); showToast('Saved', 'success'); } catch { showToast('Failed', 'error'); } };
   const handleDelete = async (id) => { if (!await confirm({ title: 'Delete this photo?', message: 'Gone forever. Probably for the best.', confirmText: 'Delete it', danger: true })) return; try { await api.delete(`/api/trips/${trip.id}/media/${id}`); setPhotos(prev => prev.filter(p => p.id !== id)); setEditingPhoto(null); setViewingPhoto(null); showToast('Deleted', 'success'); } catch { showToast('Failed', 'error'); } };
 
+  const toggleSelect = (id) => setSelected(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
+  const handleBulkDelete = async () => {
+    if (selected.size === 0) return;
+    if (!await confirm({ title: `Delete ${selected.size} photo${selected.size !== 1 ? 's' : ''}?`, message: 'This cannot be undone.', confirmText: 'Delete all', danger: true })) return;
+    let deleted = 0;
+    for (const id of selected) {
+      try { await api.delete(`/api/trips/${trip.id}/media/${id}`); deleted++; } catch {}
+    }
+    if (refreshMedia) await refreshMedia();
+    setSelected(new Set()); setSelectMode(false);
+    showToast(`Deleted ${deleted} photo${deleted !== 1 ? 's' : ''}`, 'success');
+  };
+
   const viewIdx = viewingPhoto ? photos.findIndex(p => p.id === viewingPhoto.id) : -1;
   const viewNext = () => { if (viewIdx < photos.length - 1) setViewingPhoto(photos[viewIdx + 1]); };
   const viewPrev = () => { if (viewIdx > 0) setViewingPhoto(photos[viewIdx - 1]); };
 
   return (
     <div style={{ background: 'var(--bg)' }}>
-      {!isDesktop && <div className="topbar"><button className="topbar-back" onClick={onBack}><ChevronLeft size={16} /></button><span className="topbar-title">Gallery</span><span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{photos.length} photos</span></div>}
-      {isDesktop && <div className="desk-header"><div className="desk-header-title">Gallery</div><span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{photos.length} photos</span></div>}
+      {!isDesktop && <div className="topbar"><button className="topbar-back" onClick={onBack}><ChevronLeft size={16} /></button><span className="topbar-title">Gallery</span><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><button onClick={() => { setSelectMode(!selectMode); setSelected(new Set()); }} style={{ background: 'none', border: 'none', fontSize: 13, color: selectMode ? 'var(--danger)' : 'var(--primary)', cursor: 'pointer', fontWeight: 500 }}>{selectMode ? 'Cancel' : 'Select'}</button><span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{photos.length}</span></div></div>}
+      {isDesktop && <div className="desk-header"><div className="desk-header-title">Gallery</div><div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><button onClick={() => { setSelectMode(!selectMode); setSelected(new Set()); }} style={{ background: 'none', border: 'none', fontSize: 13, color: selectMode ? 'var(--danger)' : 'var(--primary)', cursor: 'pointer', fontWeight: 500 }}>{selectMode ? 'Cancel' : 'Select'}</button><span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{photos.length} photos</span></div></div>}
 
-      <div style={{ padding: isDesktop ? '24px 32px' : '6px 4px' }}>
+      <div style={{ padding: isDesktop ? '24px 32px' : '12px 12px' }}>
         {Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b)).map(([date, datePhotos]) => (
           <div key={date}>
-            <div style={{ padding: '12px 16px 6px', fontSize: 13, fontWeight: 500, color: 'var(--warm)', fontFamily: 'var(--font-serif)', letterSpacing: '0.01em' }}>{formatDate(date)}</div>
+            <div style={{ padding: '12px 16px 6px', fontSize: 13, fontWeight: 500, color: 'var(--warm)', fontFamily: 'var(--font-serif)', letterSpacing: '0.01em' }}>{date === 'Unknown' ? 'No date' : formatDate(date)}</div>
             <div className="gallery-grid">
               {datePhotos.map((p, i) => (
-                <div key={p.id} className="gallery-item" style={{ background: p.url ? undefined : colors[(p.id + i) % colors.length], cursor: p.url ? 'pointer' : undefined }} onClick={() => p.url && setViewingPhoto(p)}>
+                <div key={p.id} className="gallery-item" style={{ background: p.url ? undefined : colors[(p.id + i) % colors.length], cursor: 'pointer', outline: selected.has(p.id) ? '3px solid var(--primary)' : 'none', outlineOffset: -3 }}
+                  onClick={() => selectMode ? toggleSelect(p.id) : p.url && setViewingPhoto(p)}>
                   {p.url ? <img src={p.url} alt={p.caption || ''} /> : (
                     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.7)' }}>
                       <Image size={20} /><span style={{ fontSize: 13, marginTop: 4 }}>{p.caption?.slice(0, 12)}</span>
                     </div>
                   )}
-                  {canEdit(p) && <button className="gallery-item-edit" onClick={e => { e.stopPropagation(); startEdit(p); }}><Edit size={12} /></button>}
+                  {selectMode && (
+                    <div style={{ position: 'absolute', top: 6, left: 6, width: 24, height: 24, borderRadius: '50%', border: '2px solid #fff', background: selected.has(p.id) ? 'var(--primary)' : 'rgba(0,0,0,.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(0,0,0,.3)' }}>
+                      {selected.has(p.id) && <Check size={14} color="#fff" />}
+                    </div>
+                  )}
+                  {!selectMode && canEdit(p) && (
+                    <div style={{ position: 'absolute', top: 6, right: 6, display: 'flex', gap: 4 }}>
+                      <button className="gallery-item-edit" style={{ position: 'static' }} onClick={e => { e.stopPropagation(); startEdit(p); }}><Edit size={12} /></button>
+                      <button className="gallery-item-edit" style={{ position: 'static', background: 'rgba(200,60,60,.5)' }} onClick={e => { e.stopPropagation(); handleDelete(p.id); }}><Trash size={12} /></button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -70,7 +97,10 @@ export default function GalleryPage({ trip, user, onBack, photos: propPhotos, se
         <div className="sheet-backdrop" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,.92)' }} onClick={() => setViewingPhoto(null)}>
           <div onClick={e => e.stopPropagation()} style={{ position: 'relative', maxWidth: '92vw', maxHeight: '88vh', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <button onClick={() => setViewingPhoto(null)} style={{ position: 'absolute', top: -12, right: -12, width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,.15)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10 }}><X size={18} color="#fff" /></button>
-            <img src={viewingPhoto.url} alt={viewingPhoto.caption} style={{ maxWidth: '92vw', maxHeight: '78vh', borderRadius: 8, objectFit: 'contain' }} />
+            <img src={viewingPhoto.url} alt={viewingPhoto.caption} style={{ maxWidth: '92vw', maxHeight: '78vh', borderRadius: 8, objectFit: 'contain', touchAction: 'pan-y' }}
+              onTouchStart={e => { touchStart.current = e.touches[0].clientX; }}
+              onTouchEnd={e => { if (touchStart.current === null) return; const diff = e.changedTouches[0].clientX - touchStart.current; touchStart.current = null; if (Math.abs(diff) < 50) return; if (diff < 0) viewNext(); else viewPrev(); }}
+            />
             {viewIdx > 0 && <button onClick={viewPrev} style={{ position: 'absolute', top: '50%', left: -20, transform: 'translateY(-50%)', width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,.15)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ChevronLeft size={20} color="#fff" /></button>}
             {viewIdx < photos.length - 1 && <button onClick={viewNext} style={{ position: 'absolute', top: '50%', right: -20, transform: 'translateY(-50%)', width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,.15)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ChevronRight size={20} color="#fff" /></button>}
             <div style={{ marginTop: 10, textAlign: 'center', color: '#fff' }}>
@@ -82,6 +112,12 @@ export default function GalleryPage({ trip, user, onBack, photos: propPhotos, se
               <button onClick={() => handleDelete(viewingPhoto.id)} style={{ padding: '8px 16px', borderRadius: 10, background: 'rgba(200,70,70,.3)', border: 'none', color: '#ff8888', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}><Trash size={12} /> Delete</button>
             </div>}
           </div>
+        </div>
+      )}
+
+      {selectMode && selected.size > 0 && (
+        <div style={{ position: 'fixed', bottom: 'calc(var(--nav-height) + var(--safe-bottom) + 12px)', left: '50%', transform: 'translateX(-50%)', background: 'var(--danger)', color: '#fff', borderRadius: 'var(--radius-pill)', padding: '12px 24px', fontSize: 14, fontWeight: 500, cursor: 'pointer', boxShadow: '0 4px 20px rgba(0,0,0,.25)', display: 'flex', alignItems: 'center', gap: 8, zIndex: 40 }} onClick={handleBulkDelete}>
+          <Trash size={16} /> Delete {selected.size} photo{selected.size !== 1 ? 's' : ''}
         </div>
       )}
 

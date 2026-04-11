@@ -105,6 +105,14 @@
       "{{name}}, already planning next year?",
       "Back at it, {{name}}. But the photos live on.",
       "{{name}}, that was a good one. Start the countdown to next year."
+    ],
+    "newUser": [
+      "Welcome, {{name}}. Good to have you here.",
+      "Hey {{name}}. Welcome to the crew.",
+      "{{name}}, welcome aboard. Take a look around.",
+      "Welcome in, {{name}}. Everything you need is right here.",
+      "Hey {{name}}. Glad you made it.",
+      "Welcome to GamJo, {{name}}. Let's plan something great."
     ]
   },
   "tripContext": {
@@ -148,6 +156,25 @@
       "Average spend: ${{amount}} per expense. Sounds about right for up north.",
       "${{amount}} average expense. Gas station runs add up.",
       "Running ${{amount}} per expense. The lake life isn't cheap."
+    ],
+    "topPhotographer": [
+      "{{name}} has uploaded {{count}} photos. Someone's documenting everything.",
+      "{{name}} leads with {{count}} photos. The unofficial trip photographer.",
+      "{{count}} photos from {{name}}. We see you."
+    ],
+    "photoCount": [
+      "{{count}} photos in the gallery. The memories are stacking up.",
+      "{{count}} photos and counting. Keep 'em coming.",
+      "We've got {{count}} photos. Not bad for this crew."
+    ],
+    "mostVoted": [
+      "\"{{title}}\" has the most votes. The people have spoken.",
+      "\"{{title}}\" is the crowd favorite with {{count}} votes.",
+      "Everyone wants to do \"{{title}}\". Just lock it in already."
+    ],
+    "noVotes": [
+      "{{count}} itinerary items and nobody's voted yet. Democracy needs you.",
+      "The itinerary has {{count}} items but zero votes. Someone start clicking."
     ]
   },
   "emptyStates": {

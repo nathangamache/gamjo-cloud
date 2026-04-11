@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Pin, ChevronLeft, ChevronRight, Link as LinkIcon, ThumbUp, Check, MapIcon, Navigation, Globe, Vote, Image, Calendar, Users, Settings } from '../components/Icons';
+import { Pin, ChevronLeft, ChevronRight, Link as LinkIcon, ThumbUp, Check, MapIcon, Navigation, Globe, Vote, Image, Calendar, Users, Settings, Dollar, Trash } from '../components/Icons';
 import { Avatar, useApp } from '../App';
 import { SkeletonHome } from '../components/Shared';
 import { api } from '../utils/api';
@@ -42,8 +42,10 @@ function useImageBrightness(url) {
   return isDark;
 }
 
-function HeroImage({ trip, bannerUrl, dayTitle, isDarkImage, isAdmin, navigate }) {
-  const title = dayTitle || trip?.name || 'Gamjo';
+function HeroImage({ trip, bannerUrl, dayTitle, isDarkImage, isAdmin, navigate, theme }) {
+  const title = dayTitle || trip?.name || 'GamJo';
+  // In dark mode, always use light icons (dark overlay makes everything dark)
+  const useDark = theme === 'dark' ? true : isDarkImage;
   return (
     <div className="hero-image">
       {bannerUrl ? (
@@ -57,32 +59,28 @@ function HeroImage({ trip, bannerUrl, dayTitle, isDarkImage, isAdmin, navigate }
           <div className="hero-tree" style={{ left: 130, top: -20, width: 25, height: 90, borderRadius: '8px 8px 0 0' }} />
         </div>
       )}
-      <div className="hero-fade" style={{ background: isDarkImage
+      <div className="hero-fade" style={{ background: useDark
         ? 'linear-gradient(to top, rgba(10,18,28,.95) 0%, rgba(10,18,28,.7) 35%, rgba(10,18,28,.2) 65%, transparent 100%)'
         : 'linear-gradient(to top, rgba(255,255,255,.97) 0%, rgba(255,255,255,.75) 35%, rgba(255,255,255,.2) 65%, transparent 100%)'
       }} />
       {isAdmin && (
         <button className="hero-settings-btn" onClick={() => navigate('admin')} style={{
-          background: isDarkImage ? 'rgba(0,0,0,.3)' : 'rgba(255,255,255,.6)',
+          background: useDark ? 'rgba(0,0,0,.3)' : 'rgba(255,255,255,.6)',
         }}>
-          <Settings size={18} color={isDarkImage ? '#fff' : 'var(--text)'} />
+          <Settings size={18} color={useDark ? '#fff' : 'var(--text)'} />
         </button>
       )}
-      <button onClick={() => navigate('vacations')} style={{
-        position: 'absolute', top: 16, left: 16, zIndex: 5,
-        width: 36, height: 36, borderRadius: '50%', border: 'none', cursor: 'pointer',
-        background: isDarkImage ? 'rgba(0,0,0,.3)' : 'rgba(255,255,255,.6)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+      <button className="hero-back-btn" onClick={() => navigate('vacations')} style={{
+        background: useDark ? 'rgba(0,0,0,.3)' : 'rgba(255,255,255,.6)',
       }}>
-        <ChevronLeft size={18} color={isDarkImage ? '#fff' : 'var(--text)'} />
+        <ChevronLeft size={18} color={useDark ? '#fff' : 'var(--text)'} />
       </button>
       <div className="hero-content">
-        <div className="hero-title" style={{ color: isDarkImage ? '#fff' : 'var(--text)', fontWeight: 700, textShadow: isDarkImage ? '0 2px 8px rgba(0,0,0,.5)' : 'none', marginBottom: 14 }}>{title}</div>
+        <div className="hero-title" style={{ color: useDark ? '#fff' : 'var(--text)', fontWeight: 700, textShadow: useDark ? '0 2px 8px rgba(0,0,0,.5)' : 'none', marginBottom: 14 }}>{title}</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 18px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: isDarkImage ? 'rgba(255,255,255,.8)' : 'rgba(0,0,0,.5)', fontSize: 13, fontWeight: 500, textShadow: isDarkImage ? '0 1px 4px rgba(0,0,0,.5)' : 'none' }}><Pin size={14} /><span>{trip?.location || ''}</span></div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: isDarkImage ? 'rgba(255,255,255,.8)' : 'rgba(0,0,0,.5)', fontSize: 13, fontWeight: 500, textShadow: isDarkImage ? '0 1px 4px rgba(0,0,0,.5)' : 'none' }}><Calendar size={14} /><span>{trip ? formatDateRange(trip.start_date, trip.end_date) : ''}</span></div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: isDarkImage ? 'rgba(255,255,255,.8)' : 'rgba(0,0,0,.5)', fontSize: 13, fontWeight: 500, textShadow: isDarkImage ? '0 1px 4px rgba(0,0,0,.5)' : 'none' }}><Users size={14} /><span>{trip?.member_count || 0} travelers</span></div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: useDark ? 'rgba(255,255,255,.8)' : 'rgba(0,0,0,.5)', fontSize: 13, fontWeight: 500, textShadow: useDark ? '0 1px 4px rgba(0,0,0,.5)' : 'none' }}><Pin size={14} /><span>{trip?.location || ''}</span></div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: useDark ? 'rgba(255,255,255,.8)' : 'rgba(0,0,0,.5)', fontSize: 13, fontWeight: 500, textShadow: useDark ? '0 1px 4px rgba(0,0,0,.5)' : 'none' }}><Calendar size={14} /><span>{trip ? formatDateRange(trip.start_date, trip.end_date) : ''}</span></div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: useDark ? 'rgba(255,255,255,.8)' : 'rgba(0,0,0,.5)', fontSize: 13, fontWeight: 500, textShadow: useDark ? '0 1px 4px rgba(0,0,0,.5)' : 'none' }}><Users size={14} /><span>{trip?.member_count || 0} travelers</span></div>
         </div>
       </div>
     </div>
@@ -126,10 +124,9 @@ function HighlightedVote({ vote, onVote, members, userId }) {
   };
 
   return (
-    <div style={{
-      background: 'linear-gradient(135deg, #FDF6E7, #FFF8ED)', borderRadius: 'var(--radius)',
-      padding: '18px 20px', marginBottom: 16, boxShadow: '0 2px 12px rgba(139, 112, 50, 0.12)',
-      border: '1px solid var(--vote-border)',
+    <div className="vote-spotlight-card" style={{
+      borderRadius: 'var(--radius)',
+      padding: '18px 20px', marginBottom: 16,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
         <Vote size={18} color="var(--vote-text)" />
@@ -148,7 +145,7 @@ function HighlightedVote({ vote, onVote, members, userId }) {
             }}><ThumbUp size={16} /> I'm in</button>
             <button onClick={handleDismiss} style={{
               flex: 1, padding: '11px 0', borderRadius: 'var(--radius-sm)',
-              border: '1px solid var(--vote-border)', background: 'rgba(255,255,255,.6)',
+              border: '1px solid var(--vote-border)', background: 'var(--surface)',
               color: 'var(--text-secondary)', fontSize: 14, fontWeight: 500, cursor: 'pointer',
             }}>Not for me</button>
           </>
@@ -212,7 +209,7 @@ function RentalCard({ trip }) {
   if (!trip?.rental_url) return null;
   return (
     <div className="card mb-md" style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }} onClick={() => window.open(trip.rental_url, '_blank')}>
-      <div style={{ width: 40, height: 40, borderRadius: 10, background: 'linear-gradient(135deg, var(--primary-light), #d4dfe8)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <LinkIcon size={18} color="var(--primary)" />
       </div>
       <div style={{ flex: 1 }}>
@@ -415,11 +412,12 @@ function ActivityFeed({ tripId }) {
   };
 
   const actionIcon = (a) => {
-    if (a.action === 'created' && a.entity_type === 'expense') return '\uD83D\uDCB0';
-    if (a.action === 'deleted') return '\uD83D\uDDD1\uFE0F';
-    if (a.action === 'created' && a.entity_type === 'itinerary') return '\uD83D\uDCC5';
-    if (a.action === 'restored') return '\u267B\uFE0F';
-    return '\uD83D\uDD14';
+    const s = { width: 20, height: 20, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 };
+    if (a.action === 'created' && a.entity_type === 'expense') return <div style={{ ...s, background: 'var(--warm-light)' }}><Dollar size={12} color="var(--warm)" /></div>;
+    if (a.action === 'deleted') return <div style={{ ...s, background: 'var(--danger-light)' }}><Trash size={12} color="var(--danger)" /></div>;
+    if (a.action === 'created' && a.entity_type === 'itinerary') return <div style={{ ...s, background: 'var(--primary-light)' }}><Calendar size={12} color="var(--primary)" /></div>;
+    if (a.action === 'restored') return <div style={{ ...s, background: 'var(--sage-light)' }}><Check size={12} color="var(--sage)" /></div>;
+    return <div style={{ ...s, background: 'var(--surface-alt)' }}><Calendar size={12} color="var(--text-muted)" /></div>;
   };
 
   return (
@@ -428,7 +426,7 @@ function ActivityFeed({ tripId }) {
       <div className="card" style={{ padding: '4px 16px' }}>
         {activities.slice(0, 6).map(a => (
           <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--surface-alt)', fontSize: 13 }}>
-            <span style={{ fontSize: 16, flexShrink: 0 }}>{actionIcon(a)}</span>
+            <span style={{ fontSize: 16, flexShrink: 0, lineHeight: 1 }}>{actionIcon(a)}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <span style={{ fontWeight: 500 }}>{a.user_name?.split(' ')[0]}</span>{' '}
               <span style={{ color: 'var(--text-secondary)' }}>{a.summary}</span>
@@ -444,15 +442,22 @@ function ActivityFeed({ tripId }) {
 // #29: Vacation status indicator
 
 export default function HomePage({ trip, members, user, navigate, expenses: propExpenses, itinerary: propItinerary, media: propMedia }) {
-  const { isDesktop, isAdmin, expenses: ctxExpenses, itinerary: ctxItinerary, media: ctxMedia, refreshItinerary, dataLoaded } = useApp();
+  const { isDesktop, isAdmin, expenses: ctxExpenses, itinerary: ctxItinerary, media: ctxMedia, refreshItinerary, dataLoaded, theme } = useApp();
   const expenses = propExpenses || ctxExpenses || [];
   const itineraryItems = propItinerary || ctxItinerary || [];
   const photos = propMedia || ctxMedia || [];
 
   const firstName = user?.name?.split(' ')[0] || 'friend';
+  const isNewUser = expenses.filter(e => e.paid_by === user?.id || e.created_by === user?.id).length === 0
+    && photos.filter(p => p.uploaded_by === user?.id || p.user_id === user?.id).length === 0;
   const greeting = useMemo(() => {
     const h = new Date().getHours();
     const g = config.greetings;
+
+    // New users get a welcoming neutral tone
+    if (isNewUser && g.newUser) {
+      return t(pick(g.newUser), { name: firstName });
+    }
 
     // Determine trip status
     if (trip?.start_date && trip?.end_date) {
@@ -475,7 +480,7 @@ export default function HomePage({ trip, members, user, navigate, expenses: prop
     // Active trip: use time-of-day greetings
     const pool = h >= 20 ? g.evening : h >= 16 ? g.lateAfternoon : h >= 11 ? g.earlyAfternoon : h >= 6 ? g.morning : h >= 3 ? g.middleOfNight : g.lateNight;
     return t(pick(pool), { name: firstName });
-  }, [firstName, trip]);
+  }, [firstName, trip, isNewUser]);
 
   // Trip countdown / day counter
   const tripContext = useMemo(() => {
@@ -532,39 +537,69 @@ export default function HomePage({ trip, members, user, navigate, expenses: prop
     recentActivity: msg('headings.recentActivity'),
   }));
 
-  // Fun expense fact
+  // Fun facts (expenses, photos, votes)
   const funFact = useMemo(() => {
-    if (expenses.length < 2) return null;
     const getName = (id) => members.find(m => m.id === id || m.user_id === id)?.name?.split(' ')[0] || 'Someone';
-    const payerTotals = {};
-    let biggestDay = {}, biggestExp = null;
-    expenses.forEach(e => {
-      payerTotals[e.paid_by] = (payerTotals[e.paid_by] || 0) + (e.amount || 0);
-      if (e.date) biggestDay[e.date] = (biggestDay[e.date] || 0) + (e.amount || 0);
-      if (!biggestExp || (e.amount || 0) > (biggestExp.amount || 0)) biggestExp = e;
-    });
-    const total = expenses.reduce((s, e) => s + (e.amount || 0), 0);
-    const topPayer = Object.entries(payerTotals).sort((a, b) => b[1] - a[1])[0];
-    const topDayEntry = Object.entries(biggestDay).sort((a, b) => b[1] - a[1])[0];
     const ff = config.funFacts;
     const facts = [];
-    if (topPayer && total > 0) {
-      const pct = Math.round((topPayer[1] / total) * 100);
-      if (pct > 50) facts.push(t(pick(ff.topPayer), { name: getName(topPayer[0]), pct }));
+
+    // Expense facts
+    if (expenses.length >= 2) {
+      const payerTotals = {};
+      let biggestDay = {}, biggestExp = null;
+      expenses.forEach(e => {
+        payerTotals[e.paid_by] = (payerTotals[e.paid_by] || 0) + (e.amount || 0);
+        if (e.date) biggestDay[e.date] = (biggestDay[e.date] || 0) + (e.amount || 0);
+        if (!biggestExp || (e.amount || 0) > (biggestExp.amount || 0)) biggestExp = e;
+      });
+      const total = expenses.reduce((s, e) => s + (e.amount || 0), 0);
+      const topPayer = Object.entries(payerTotals).sort((a, b) => b[1] - a[1])[0];
+      const topDayEntry = Object.entries(biggestDay).sort((a, b) => b[1] - a[1])[0];
+      if (topPayer && total > 0) {
+        const pct = Math.round((topPayer[1] / total) * 100);
+        if (pct > 50) facts.push(t(pick(ff.topPayer), { name: getName(topPayer[0]), pct }));
+      }
+      if (topDayEntry) {
+        const dayName = new Date(topDayEntry[0] + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long' });
+        facts.push(t(pick(ff.biggestDay), { day_name: dayName, amount: Math.round(topDayEntry[1]) }));
+      }
+      if (biggestExp && biggestExp.amount >= 50) facts.push(t(pick(ff.biggestExpense), { amount: Math.round(biggestExp.amount), title: biggestExp.title }));
+      if (expenses.length >= 5) facts.push(t(pick(ff.expenseCount), { count: expenses.length }));
+      const avg = total / expenses.length;
+      if (avg > 20) facts.push(t(pick(ff.avgExpense), { amount: Math.round(avg) }));
     }
-    if (topDayEntry) {
-      const dayName = new Date(topDayEntry[0] + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long' });
-      facts.push(t(pick(ff.biggestDay), { day_name: dayName, amount: Math.round(topDayEntry[1]) }));
+
+    // Photo facts
+    if (photos.length >= 3) {
+      facts.push(t(pick(ff.photoCount), { count: photos.length }));
+      const uploaderCounts = {};
+      photos.forEach(p => {
+        const uid = p.uploaded_by || p.user_id;
+        if (uid) uploaderCounts[uid] = (uploaderCounts[uid] || 0) + 1;
+      });
+      const topUploader = Object.entries(uploaderCounts).sort((a, b) => b[1] - a[1])[0];
+      if (topUploader && topUploader[1] >= 3) {
+        facts.push(t(pick(ff.topPhotographer), { name: getName(topUploader[0]), count: topUploader[1] }));
+      }
     }
-    if (biggestExp && biggestExp.amount >= 50) facts.push(t(pick(ff.biggestExpense), { amount: Math.round(biggestExp.amount), title: biggestExp.title }));
-    if (expenses.length >= 5) facts.push(t(pick(ff.expenseCount), { count: expenses.length }));
-    const avg = total / expenses.length;
-    if (avg > 20) facts.push(t(pick(ff.avgExpense), { amount: Math.round(avg) }));
+
+    // Vote facts
+    if (itineraryItems.length >= 2) {
+      const votedItems = itineraryItems.filter(i => (i.likes || 0) + (i.dislikes || 0) > 0);
+      if (votedItems.length > 0) {
+        const mostVoted = votedItems.sort((a, b) => (b.likes || 0) - (a.likes || 0))[0];
+        if (mostVoted.likes >= 2) facts.push(t(pick(ff.mostVoted), { title: mostVoted.title, count: mostVoted.likes }));
+      } else if (itineraryItems.length >= 3) {
+        facts.push(t(pick(ff.noVotes), { count: itineraryItems.length }));
+      }
+    }
+
     return facts.length > 0 ? pick(facts) : null;
-  }, [expenses, members]);
+  }, [expenses, members, photos, itineraryItems]);
 
   // Pick a random banner (recalculates when trip changes)
   const [bannerSeed] = useState(() => Math.random());
+  const [showOnboarding, setShowOnboarding] = useState(() => user?.onboarded === false);
   const bannerUrl = useMemo(() => {
     if (!trip) return null;
     const pool = isDesktop
@@ -576,6 +611,7 @@ export default function HomePage({ trip, members, user, navigate, expenses: prop
 
   // Detect if banner image is dark or light for text contrast
   const isDarkImage = useImageBrightness(bannerUrl);
+  const useDark = theme === 'dark' ? true : isDarkImage;
 
   const handleVote = async (id) => {
     try {
@@ -592,7 +628,7 @@ export default function HomePage({ trip, members, user, navigate, expenses: prop
   if (!trip) {
     return (
       <div style={{ padding: 40, textAlign: 'center' }}>
-        <div className="heading-serif lg" style={{ color: 'var(--primary)', marginBottom: 8 }}>Gamjo</div>
+        <div className="heading-serif lg" style={{ color: 'var(--primary)', marginBottom: 8 }}>GamJo</div>
         <div style={{ color: 'var(--text-secondary)', marginBottom: 16 }}>No active trip right now. Time to plan the next one.</div>
         {isAdmin && <button className="btn btn-primary" style={{ maxWidth: 240, margin: '0 auto' }} onClick={() => navigate('admin')}>Create a vacation</button>}
       </div>
@@ -615,34 +651,34 @@ export default function HomePage({ trip, members, user, navigate, expenses: prop
             <button className="hero-settings-btn" onClick={() => navigate('admin')} style={{
               zIndex: 5,
               width: 38, height: 38, borderRadius: '50%',
-              background: isDarkImage ? 'rgba(0,0,0,.3)' : 'rgba(255,255,255,.6)',
+              background: useDark ? 'rgba(0,0,0,.3)' : 'rgba(255,255,255,.6)',
               backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
               border: 'none', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <Settings size={18} color={isDarkImage ? '#fff' : 'var(--text)'} />
+              <Settings size={18} color={useDark ? '#fff' : 'var(--text)'} />
             </button>
           )}
           <button onClick={() => navigate('vacations')} style={{
             position: 'absolute', top: 16, left: 16, zIndex: 5,
             width: 38, height: 38, borderRadius: '50%', border: 'none', cursor: 'pointer',
-            background: isDarkImage ? 'rgba(0,0,0,.3)' : 'rgba(255,255,255,.6)',
+            background: useDark ? 'rgba(0,0,0,.3)' : 'rgba(255,255,255,.6)',
             backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <ChevronLeft size={18} color={isDarkImage ? '#fff' : 'var(--text)'} />
+            <ChevronLeft size={18} color={useDark ? '#fff' : 'var(--text)'} />
           </button>
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 200, background: isDarkImage
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 200, background: useDark
             ? 'linear-gradient(to top, rgba(10,18,28,.9) 0%, rgba(10,18,28,.6) 35%, rgba(10,18,28,.15) 70%, transparent 100%)'
             : 'linear-gradient(to top, rgba(255,255,255,.95) 0%, rgba(255,255,255,.7) 35%, rgba(255,255,255,.15) 70%, transparent 100%)'
           }} />
           <div className="desk-hero-content">
             <div>
-              <div style={{ fontSize: 48, fontWeight: 600, color: isDarkImage ? '#fff' : 'var(--text)', fontFamily: 'var(--font-serif)', lineHeight: 1.05, textShadow: isDarkImage ? '0 2px 8px rgba(0,0,0,.5)' : 'none', marginBottom: 14 }}>{todayDayTitle || trip.name}</div>
+              <div style={{ fontSize: 48, fontWeight: 600, color: useDark ? '#fff' : 'var(--text)', fontFamily: 'var(--font-serif)', lineHeight: 1.05, textShadow: useDark ? '0 2px 8px rgba(0,0,0,.5)' : 'none', marginBottom: 14 }}>{todayDayTitle || trip.name}</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 20px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 500, color: isDarkImage ? 'rgba(255,255,255,.8)' : 'rgba(0,0,0,.5)', textShadow: isDarkImage ? '0 1px 4px rgba(0,0,0,.5)' : 'none' }}><Pin size={15} /> {trip.location}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 500, color: isDarkImage ? 'rgba(255,255,255,.8)' : 'rgba(0,0,0,.5)', textShadow: isDarkImage ? '0 1px 4px rgba(0,0,0,.5)' : 'none' }}><Calendar size={15} /> {formatDateRange(trip.start_date, trip.end_date)}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 500, color: isDarkImage ? 'rgba(255,255,255,.8)' : 'rgba(0,0,0,.5)', textShadow: isDarkImage ? '0 1px 4px rgba(0,0,0,.5)' : 'none' }}><Users size={15} /> {members.length} travelers</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 500, color: useDark ? 'rgba(255,255,255,.8)' : 'rgba(0,0,0,.5)', textShadow: useDark ? '0 1px 4px rgba(0,0,0,.5)' : 'none' }}><Pin size={15} /> {trip.location}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 500, color: useDark ? 'rgba(255,255,255,.8)' : 'rgba(0,0,0,.5)', textShadow: useDark ? '0 1px 4px rgba(0,0,0,.5)' : 'none' }}><Calendar size={15} /> {formatDateRange(trip.start_date, trip.end_date)}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 500, color: useDark ? 'rgba(255,255,255,.8)' : 'rgba(0,0,0,.5)', textShadow: useDark ? '0 1px 4px rgba(0,0,0,.5)' : 'none' }}><Users size={15} /> {members.length} travelers</div>
               </div>
             </div>
           </div>
@@ -654,6 +690,15 @@ export default function HomePage({ trip, members, user, navigate, expenses: prop
               {tripContext && <div style={{ fontSize: 13, color: 'var(--warm)', marginBottom: 14, fontWeight: 500 }}>{tripContext}</div>}
               {!tripContext && <div style={{ marginBottom: 14 }} />}
               <HighlightedVote vote={activeVote} onVote={handleVote} members={members} userId={user?.id} />
+              {showOnboarding && (
+                <div className="card mb-md" style={{ border: '1px solid var(--primary-light)', background: 'var(--primary-light)' }}>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--primary)', marginBottom: 8 }}>Welcome to GamJo</div>
+                  <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 12 }}>
+                    Here's the quick tour: use <strong>Itinerary</strong> to plan activities and vote on ideas. Track spending in <strong>Expenses</strong> and we'll handle the group splits. Drop your photos in <strong>Photos</strong> to share with the crew.
+                  </div>
+                  <button onClick={() => { setShowOnboarding(false); api.patch('/api/auth/me', { onboarded: true }).catch(() => {}); }} className="btn btn-primary" style={{ fontSize: 13, padding: '10px 18px' }}>Got it, let's go</button>
+                </div>
+              )}
               <div className="heading-serif md mb-sm">{headings.whatsHappening}</div>
               <TodayPlan items={todayEvents} navigate={navigate} />
               <WeatherCard trip={trip} />
@@ -662,12 +707,12 @@ export default function HomePage({ trip, members, user, navigate, expenses: prop
             <div className="desk-side-col">
               <RentalCard trip={trip} />
               <PolaroidStrip photos={photos} navigate={navigate} />
-              <div className="card mb-md" style={{ textAlign: 'center', background: 'linear-gradient(145deg, #1E3A5F 0%, #2D5A8F 50%, #3D6E5A 100%)', border: 'none', padding: '28px 22px', color: '#fff' }}>
-                <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,.85)', marginBottom: 4 }}>Trip total</div>
-                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 32, fontWeight: 400 }}>${stats.totalSpent}</div>
-                <div style={{ fontSize: 13, color: 'rgba(255,255,255,.7)', marginTop: 6 }}>damage so far &middot; {stats.expenseCount} expenses</div>
-                {funFact && <div style={{ fontSize: 13, color: 'rgba(255,255,255,.8)', fontStyle: 'italic', marginTop: 10 }}>{funFact}</div>}
+              <div className="card mb-md trip-total-card" style={{ textAlign: 'center', border: 'none', padding: '28px 22px', color: '#fff' }}>
+                <div className="trip-total-label" style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Trip total</div>
+                <div className="trip-total-amount" style={{ fontFamily: 'var(--font-serif)', fontSize: 32, fontWeight: 400 }}>${stats.totalSpent}</div>
+                <div className="trip-total-meta" style={{ fontSize: 13, marginTop: 6 }}>damage so far &middot; {stats.expenseCount} expenses</div>
               </div>
+              {funFact && <div className="fun-fact-card">{funFact}</div>}
               <div className="card">
                 <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{headings.theSquad}</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(52px, 1fr))', gap: 6 }}>
@@ -682,7 +727,7 @@ export default function HomePage({ trip, members, user, navigate, expenses: prop
             </div>
           </div>
           <div className="card mt-md" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={() => navigate('vacations')}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, var(--sage-light), #D4E8DC)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Globe size={18} color="var(--sage)" /></div>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--sage-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Globe size={18} color="var(--sage)" /></div>
             <div style={{ flex: 1 }}><div style={{ fontSize: 13, fontWeight: 500 }}>All vacations</div><div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Past, present, and future adventures</div></div><ChevronRight size={16} color="var(--text-muted)" />
           </div>
         </div>
@@ -693,12 +738,21 @@ export default function HomePage({ trip, members, user, navigate, expenses: prop
   // Mobile layout
   return (
     <div className="page-home">
-      <HeroImage trip={trip} bannerUrl={bannerUrl} dayTitle={todayDayTitle} isDarkImage={isDarkImage} isAdmin={isAdmin} navigate={navigate} />
+      <HeroImage trip={trip} bannerUrl={bannerUrl} dayTitle={todayDayTitle} isDarkImage={isDarkImage} isAdmin={isAdmin} navigate={navigate} theme={theme} />
       <div className="hero-panel">
         <div style={{ fontSize: 15, marginBottom: 4 }}>{greeting}</div>
         {tripContext && <div style={{ fontSize: 13, color: 'var(--warm)', marginBottom: 14, fontWeight: 500 }}>{tripContext}</div>}
         {!tripContext && <div style={{ marginBottom: 14 }} />}
         <HighlightedVote vote={activeVote} onVote={handleVote} members={members} userId={user?.id} />
+        {showOnboarding && (
+          <div className="card mb-md" style={{ border: '1px solid var(--primary-light)', background: 'var(--primary-light)' }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--primary)', marginBottom: 8 }}>Welcome to GamJo</div>
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 12 }}>
+              Here's the quick tour: use <strong>Itinerary</strong> to plan activities and vote on ideas. Track spending in <strong>Expenses</strong> and we'll handle the group splits. Drop your photos in <strong>Photos</strong> to share with the crew.
+            </div>
+            <button onClick={() => { setShowOnboarding(false); api.patch('/api/auth/me', { onboarded: true }).catch(() => {}); }} className="btn btn-primary" style={{ fontSize: 13, padding: '10px 18px' }}>Got it, let's go</button>
+          </div>
+        )}
         <RentalCard trip={trip} />
 
         <div className="heading-serif md mb-sm">{headings.whatsHappening}</div>
@@ -708,7 +762,7 @@ export default function HomePage({ trip, members, user, navigate, expenses: prop
           <div className="stat-card"><div className="stat-value">${stats.totalSpent}</div><div className="stat-label">damage so far</div></div>
           <div className="stat-card"><div className="stat-value">{stats.photoCount}</div><div className="stat-label">memories captured</div></div>
         </div>
-        {funFact && <div style={{ fontSize: 13, color: 'var(--text-secondary)', fontStyle: 'italic', marginBottom: 12, paddingLeft: 2 }}>{funFact}</div>}
+        {funFact && <div className="fun-fact-card">{funFact}</div>}
 
         <PolaroidStrip photos={photos} navigate={navigate} />
 
@@ -727,12 +781,12 @@ export default function HomePage({ trip, members, user, navigate, expenses: prop
 
         {/* #31: Gallery link on mobile */}
         <div className="card mb-sm" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={() => navigate('gallery')}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, var(--primary-light), #D6E4F0)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Image size={18} color="var(--primary)" /></div>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Image size={18} color="var(--primary)" /></div>
           <div style={{ flex: 1 }}><div style={{ fontSize: 13, fontWeight: 500 }}>Photo gallery</div><div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{stats.photoCount} memories and counting</div></div><ChevronRight size={16} color="var(--text-muted)" />
         </div>
 
         <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={() => navigate('vacations')}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, var(--sage-light), #D4E8DC)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Globe size={18} color="var(--sage)" /></div>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--sage-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Globe size={18} color="var(--sage)" /></div>
           <div style={{ flex: 1 }}><div style={{ fontSize: 13, fontWeight: 500 }}>All vacations</div><div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Past, present, and future adventures</div></div><ChevronRight size={16} color="var(--text-muted)" />
         </div>
       </div>
