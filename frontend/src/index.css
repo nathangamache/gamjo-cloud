@@ -1259,11 +1259,39 @@ body { font-size: 16px; }
 [data-a11y="true"][data-theme="dark"] .trip-total-card * { color: var(--text) !important; }
 [data-a11y="true"] .summary-card * { color: #fff !important; }
 [data-a11y="true"] .vacation-card * { color: #fff !important; }
+
+/* Hero: ALL elements over the image must be white - high specificity to beat rgba catch-all */
 [data-a11y="true"] .hero-content * { color: #fff !important; }
+[data-a11y="true"] .hero-image [style*="color"] { color: #fff !important; }
+[data-a11y="true"] .hero-content [style*="color"] { color: #fff !important; }
+
+/* A11y: ensure hero has dark overlay for white text readability */
+[data-a11y="true"] .hero-image::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  z-index: 1;
+}
+[data-a11y="true"] .hero-fade { z-index: 2; }
+[data-a11y="true"] .hero-content { z-index: 3; }
+[data-a11y="true"] .hero-settings-btn { z-index: 3; }
+[data-a11y="true"] .hero-back-btn { z-index: 3; }
+[data-a11y="true"] .desk-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  z-index: 1;
+}
+[data-a11y="true"] .desk-hero-content { z-index: 3; }
 
 /* Hero panel (below image) uses theme text */
 [data-a11y="true"] .hero-panel,
 [data-a11y="true"] .hero-panel * { color: var(--text) !important; }
+[data-a11y="true"] .hero-panel [style*="color"] { color: var(--text) !important; }
 
 /* Empty state */
 [data-a11y="true"] .empty-state * { font-size: 20px !important; color: var(--text) !important; }
@@ -1280,9 +1308,13 @@ body { font-size: 16px; }
 [data-a11y="true"] .card { border: 2px solid var(--text-muted) !important; }
 [data-a11y="true"] .form-input { border: 2px solid var(--text-muted) !important; }
 
-/* Vacation cards: taller to fit larger text */
-[data-a11y="true"] .vacation-card > div { height: auto !important; min-height: 240px !important; }
-[data-a11y="true"] .vacation-card div[style*="fontWeight: 600"] { font-size: 26px !important; }
+/* Vacation cards: mobile a11y shows title only */
+[data-a11y="true"] .vacation-card > div { height: auto !important; min-height: 140px !important; }
+[data-a11y="true"] .vacation-card div[style*="font-weight: 600"] { font-size: 26px !important; }
+@media (max-width: 767px) {
+  [data-a11y="true"] .vacation-card div[style*="justify-content"] { display: none !important; }
+  [data-a11y="true"] .vacation-card > div { min-height: 120px !important; }
+}
 [data-a11y="true"] .vacation-card span { font-size: 20px !important; }
 
 /* ── A11y Font Sizes (20px minimum) ── */

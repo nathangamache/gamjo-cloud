@@ -42,10 +42,10 @@ function useImageBrightness(url) {
   return isDark;
 }
 
-function HeroImage({ trip, bannerUrl, dayTitle, isDarkImage, isAdmin, navigate, theme }) {
+function HeroImage({ trip, bannerUrl, dayTitle, isDarkImage, isAdmin, navigate, theme, a11yMode }) {
   const title = dayTitle || trip?.name || 'GamJo';
-  // In dark mode, always use light icons (dark overlay makes everything dark)
-  const useDark = theme === 'dark' ? true : isDarkImage;
+  // In dark mode or a11y mode, always use light text (overlay makes bg dark enough)
+  const useDark = (theme === 'dark' || a11yMode) ? true : isDarkImage;
   return (
     <div className="hero-image">
       {bannerUrl ? (
@@ -442,7 +442,7 @@ function ActivityFeed({ tripId }) {
 // #29: Vacation status indicator
 
 export default function HomePage({ trip, members, user, navigate, expenses: propExpenses, itinerary: propItinerary, media: propMedia }) {
-  const { isDesktop, isAdmin, expenses: ctxExpenses, itinerary: ctxItinerary, media: ctxMedia, refreshItinerary, dataLoaded, theme } = useApp();
+  const { isDesktop, isAdmin, expenses: ctxExpenses, itinerary: ctxItinerary, media: ctxMedia, refreshItinerary, dataLoaded, theme, a11yMode } = useApp();
   const expenses = propExpenses || ctxExpenses || [];
   const itineraryItems = propItinerary || ctxItinerary || [];
   const photos = propMedia || ctxMedia || [];
@@ -611,7 +611,7 @@ export default function HomePage({ trip, members, user, navigate, expenses: prop
 
   // Detect if banner image is dark or light for text contrast
   const isDarkImage = useImageBrightness(bannerUrl);
-  const useDark = theme === 'dark' ? true : isDarkImage;
+  const useDark = (theme === 'dark' || a11yMode) ? true : isDarkImage;
 
   const handleVote = async (id) => {
     try {
@@ -738,7 +738,7 @@ export default function HomePage({ trip, members, user, navigate, expenses: prop
   // Mobile layout
   return (
     <div className="page-home">
-      <HeroImage trip={trip} bannerUrl={bannerUrl} dayTitle={todayDayTitle} isDarkImage={isDarkImage} isAdmin={isAdmin} navigate={navigate} theme={theme} />
+      <HeroImage trip={trip} bannerUrl={bannerUrl} dayTitle={todayDayTitle} isDarkImage={isDarkImage} isAdmin={isAdmin} navigate={navigate} theme={theme} a11yMode={a11yMode} />
       <div className="hero-panel">
         <div style={{ fontSize: 15, marginBottom: 4 }}>{greeting}</div>
         {tripContext && <div style={{ fontSize: 13, color: 'var(--warm)', marginBottom: 14, fontWeight: 500 }}>{tripContext}</div>}
