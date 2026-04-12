@@ -6,7 +6,7 @@ import { api } from '../utils/api';
 import { formatMoney, msg } from '../utils/helpers';
 
 export default function ProfilePage({ user, trip, members, groups: propGroups, onLogout }) {
-  const { isAdmin, isDesktop, groups: ctxGroups, setUser, expenses: ctxExpenses, itinerary: ctxItinerary, media: ctxMedia, dataLoaded, theme, toggleTheme, reduceMotion, toggleReduceMotion } = useApp();
+  const { isAdmin, isDesktop, groups: ctxGroups, setUser, expenses: ctxExpenses, itinerary: ctxItinerary, media: ctxMedia, dataLoaded, theme, toggleTheme, reduceMotion, toggleReduceMotion, a11yMode, toggleA11y } = useApp();
   const groups = propGroups || ctxGroups || [];
   const expenses = ctxExpenses || [];
   const itinerary = ctxItinerary || [];
@@ -147,6 +147,24 @@ export default function ProfilePage({ user, trip, members, groups: propGroups, o
               width: 24, height: 24, borderRadius: '50%', background: '#fff',
               transition: 'transform 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,.2)',
               transform: reduceMotion ? 'translateX(20px)' : 'translateX(0)',
+            }} />
+          </button>
+        </div>
+
+        <div className="card mb-lg" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <span style={{ fontSize: 14 }}>Accessibility mode</span>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Larger text, higher contrast</div>
+          </div>
+          <button onClick={toggleA11y} style={{
+            width: 48, height: 28, borderRadius: 14, border: 'none', cursor: 'pointer', padding: 2,
+            background: a11yMode ? 'var(--primary)' : 'var(--border)',
+            transition: 'background 0.2s', position: 'relative',
+          }}>
+            <div style={{
+              width: 24, height: 24, borderRadius: '50%', background: '#fff',
+              transition: 'transform 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,.2)',
+              transform: a11yMode ? 'translateX(20px)' : 'translateX(0)',
             }} />
           </button>
         </div>

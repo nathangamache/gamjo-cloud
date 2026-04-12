@@ -2,7 +2,7 @@
 Replace backend/routes/auth.py with this file.
 """
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, UploadFile, File
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import uuid4
 from datetime import datetime, timedelta
@@ -185,11 +185,28 @@ async def verify_token(
 
 
 @router.get("/me")
-async def get_me(user: User = Depends(get_current_user)):
+async def get_me(request: Request, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    # Read preference columns directly from DB (may not be on ORM model)
+    prefs = {"theme": "light", "reduce_motion": False, "a11y_mode": False}
+    try:
+        result = await db.execute(
+            text("SELECT theme, reduce_motion, a11y_mode FROM users WHERE id = :uid"),
+            {"uid": str(user.id)}
+        )
+        row = result.fetchone()
+        if row:
+            prefs["theme"] = row[0] or "light"
+            prefs["reduce_motion"] = bool(row[1])
+            prefs["a11y_mode"] = bool(row[2])
+    except Exception:
+        pass
     return {
         "id": user.id, "name": user.name, "email": user.email,
         "avatar_url": getattr(user, 'avatar_url', None),
         "onboarded": getattr(user, 'onboarded', True),
+        "theme": prefs["theme"],
+        "reduce_motion": prefs["reduce_motion"],
+        "a11y_mode": prefs["a11y_mode"],
         "created_at": str(user.created_at) if hasattr(user, 'created_at') and user.created_at else None,
     }
 
@@ -204,9 +221,46 @@ async def update_me(request: Request, user: User = Depends(get_current_user), db
         user.onboarded = data["onboarded"]
     await db.commit()
     await db.refresh(user)
+
+    # Save preferences via raw SQL (columns may not be on ORM model)
+    pref_updates = {}
+    if "theme" in data:
+        pref_updates["theme"] = data["theme"]
+    if "reduce_motion" in data:
+        pref_updates["reduce_motion"] = bool(data["reduce_motion"])
+    if "a11y_mode" in data:
+        pref_updates["a11y_mode"] = bool(data["a11y_mode"])
+    if pref_updates:
+        set_clauses = ", ".join(f"{k} = :{k}" for k in pref_updates)
+        pref_updates["uid"] = str(user.id)
+        await db.execute(
+            text(f"UPDATE users SET {set_clauses} WHERE id = :uid"),
+            pref_updates
+        )
+        await db.commit()
+
+    # Read back current preferences
+    prefs = {"theme": "light", "reduce_motion": False, "a11y_mode": False}
+    try:
+        result = await db.execute(
+            text("SELECT theme, reduce_motion, a11y_mode FROM users WHERE id = :uid"),
+            {"uid": str(user.id)}
+        )
+        row = result.fetchone()
+        if row:
+            prefs["theme"] = row[0] or "light"
+            prefs["reduce_motion"] = bool(row[1])
+            prefs["a11y_mode"] = bool(row[2])
+    except Exception:
+        pass
+
     return {
         "id": user.id, "name": user.name, "email": user.email,
         "avatar_url": getattr(user, 'avatar_url', None),
+        "onboarded": getattr(user, 'onboarded', True),
+        "theme": prefs["theme"],
+        "reduce_motion": prefs["reduce_motion"],
+        "a11y_mode": prefs["a11y_mode"],
     }
 
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, createContext, useContext, useCallback, useMemo } from 'react';
 import { Home, Dollar, Camera, User, Shield, Globe, LogOut, Calendar } from './components/Icons';
 import { useAuth } from './hooks/useAuth';
 import { useConfirm } from './components/Shared';
@@ -172,23 +172,61 @@ export default function App() {
   const [dataLoaded, setDataLoaded] = useState(false);
   const [theme, setThemeState] = useState(() => localStorage.getItem('gamjo-theme') || 'light');
   const [reduceMotion, setReduceMotionState] = useState(() => localStorage.getItem('gamjo-reduce-motion') === 'true');
+  const [a11yMode, setA11yModeState] = useState(() => localStorage.getItem('gamjo-a11y') === 'true');
+  const prefsLoaded = useRef(false);
+
+  const applyPrefs = (t, rm, a) => {
+    document.documentElement.setAttribute('data-theme', t);
+    document.documentElement.setAttribute('data-reduce-motion', String(rm));
+    document.documentElement.setAttribute('data-a11y', String(a));
+  };
+
   const toggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark';
     setThemeState(next);
     localStorage.setItem('gamjo-theme', next);
-    document.documentElement.setAttribute('data-theme', next);
+    applyPrefs(next, reduceMotion, a11yMode);
+    if (setUser) setUser(prev => prev ? { ...prev, theme: next } : prev);
+    api.patch('/api/auth/me', { theme: next }).catch(() => {});
   };
   const toggleReduceMotion = () => {
     const next = !reduceMotion;
     setReduceMotionState(next);
     localStorage.setItem('gamjo-reduce-motion', String(next));
-    document.documentElement.setAttribute('data-reduce-motion', String(next));
+    applyPrefs(theme, next, a11yMode);
+    if (setUser) setUser(prev => prev ? { ...prev, reduce_motion: next } : prev);
+    api.patch('/api/auth/me', { reduce_motion: next }).catch(() => {});
   };
-  // Apply on mount
+  const toggleA11y = () => {
+    const next = !a11yMode;
+    setA11yModeState(next);
+    localStorage.setItem('gamjo-a11y', String(next));
+    applyPrefs(theme, reduceMotion, next);
+    if (setUser) setUser(prev => prev ? { ...prev, a11y_mode: next } : prev);
+    api.patch('/api/auth/me', { a11y_mode: next }).catch(() => {});
+  };
+
+  // Apply localStorage values on mount (instant, before API responds)
+  useEffect(() => { applyPrefs(theme, reduceMotion, a11yMode); }, []);
+
+  // Sync preferences from DB on first user load only
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    document.documentElement.setAttribute('data-reduce-motion', String(reduceMotion));
-  }, []);
+    if (!user || prefsLoaded.current) return;
+    prefsLoaded.current = true;
+    // Only sync from DB if user actually has preference fields set
+    const hasDbPrefs = user.theme !== undefined && user.theme !== null;
+    if (!hasDbPrefs) return;
+    const t = user.theme || 'light';
+    const rm = user.reduce_motion === true;
+    const a = user.a11y_mode === true;
+    setThemeState(t);
+    setReduceMotionState(rm);
+    setA11yModeState(a);
+    localStorage.setItem('gamjo-theme', t);
+    localStorage.setItem('gamjo-reduce-motion', String(rm));
+    localStorage.setItem('gamjo-a11y', String(a));
+    applyPrefs(t, rm, a);
+  }, [user?.id]);
   const activeTrip = trip && isTripCurrent(trip);
   const singleActiveTrip = activeTrip && allTrips.filter(t => isTripCurrent(t)).length === 1;
   const inTrip = !!trip && (
@@ -313,7 +351,7 @@ export default function App() {
     }
   };
   return (
-    <AppContext.Provider value={{ user, setUser, trip, allTrips, members, groups, expenses, itinerary, media, isAdmin, isGlobalAdmin, isDesktop, inTrip, dataLoaded, theme, toggleTheme, reduceMotion, toggleReduceMotion, navigate, openTrip, setTrip, setMembers, setGroups, setExpenses, setItinerary, setMedia, refreshExpenses, refreshItinerary, refreshMedia, refreshMembers, refreshGroups }}>
+    <AppContext.Provider value={{ user, setUser, trip, allTrips, members, groups, expenses, itinerary, media, isAdmin, isGlobalAdmin, isDesktop, inTrip, dataLoaded, theme, toggleTheme, reduceMotion, toggleReduceMotion, a11yMode, toggleA11y, navigate, openTrip, setTrip, setMembers, setGroups, setExpenses, setItinerary, setMedia, refreshExpenses, refreshItinerary, refreshMedia, refreshMembers, refreshGroups }}>
       <div className="app">
         {isDesktop && <DesktopSidebar tab={page} navigate={navigate} user={user} isAdmin={isAdmin} isGlobalAdmin={isGlobalAdmin} onLogout={handleLogout} inTrip={inTrip} />}
         <div className="page-content">{renderPage()}</div>

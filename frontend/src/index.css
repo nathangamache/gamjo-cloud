@@ -1222,3 +1222,137 @@ body { font-size: 16px; }
     animation-iteration-count: infinite !important;
   }
 }
+
+/* ── Accessibility Mode ── */
+/* Only override TEXT variables - NOT primary/warm/sage/danger (used for backgrounds) */
+[data-a11y="true"] {
+  --text: #000000;
+  --text-secondary: #000000;
+  --text-muted: #000000;
+  --vote-text: #000000;
+}
+[data-a11y="true"][data-theme="dark"] {
+  --text: #FFFFFF;
+  --text-secondary: #FFFFFF;
+  --text-muted: #FFFFFF;
+  --vote-text: #FFFFFF;
+}
+
+/* Force colored inline text to high contrast */
+[data-a11y="true"] [style*="color: var(--warm"] { color: var(--text) !important; }
+[data-a11y="true"] [style*="color: var(--sage"] { color: var(--text) !important; }
+[data-a11y="true"] [style*="color: var(--primary"] { color: var(--text) !important; }
+[data-a11y="true"] [style*="color: var(--danger"] { color: var(--text) !important; }
+[data-a11y="true"] [style*="color: var(--vote"] { color: var(--text) !important; }
+[data-a11y="true"] [style*="color: rgba("] { color: var(--text) !important; }
+
+/* Buttons: keep backgrounds, fix text contrast */
+[data-a11y="true"] .btn-primary { color: #fff !important; }
+[data-a11y="true"] .btn-add { color: #fff !important; }
+[data-a11y="true"] .btn-danger { color: #fff !important; background: var(--danger) !important; }
+[data-a11y="true"] .btn-secondary { color: var(--text) !important; border: 2px solid var(--text) !important; }
+[data-a11y="true"] .btn-ghost { color: var(--text) !important; border: 2px solid var(--text) !important; }
+
+/* Elements on gradient backgrounds stay white */
+[data-a11y="true"] .stat-card * { color: #fff !important; }
+[data-a11y="true"] .trip-total-card * { color: #fff !important; }
+[data-a11y="true"][data-theme="dark"] .trip-total-card * { color: var(--text) !important; }
+[data-a11y="true"] .summary-card * { color: #fff !important; }
+[data-a11y="true"] .vacation-card * { color: #fff !important; }
+[data-a11y="true"] .hero-content * { color: #fff !important; }
+
+/* Hero panel (below image) uses theme text */
+[data-a11y="true"] .hero-panel,
+[data-a11y="true"] .hero-panel * { color: var(--text) !important; }
+
+/* Empty state */
+[data-a11y="true"] .empty-state * { font-size: 20px !important; color: var(--text) !important; }
+
+/* Badges: outline style for contrast */
+[data-a11y="true"] .badge { color: var(--text) !important; border: 2px solid var(--text) !important; background: transparent !important; }
+
+/* Tab bar: inverted active state */
+[data-a11y="true"] .tab-bar { border: 2px solid var(--text) !important; }
+[data-a11y="true"] .tab-bar-item { color: var(--text) !important; }
+[data-a11y="true"] .tab-bar-item.active { background: var(--text) !important; color: var(--bg) !important; }
+
+/* Card and input borders */
+[data-a11y="true"] .card { border: 2px solid var(--text-muted) !important; }
+[data-a11y="true"] .form-input { border: 2px solid var(--text-muted) !important; }
+
+/* Vacation cards: taller to fit larger text */
+[data-a11y="true"] .vacation-card > div { height: auto !important; min-height: 240px !important; }
+[data-a11y="true"] .vacation-card div[style*="fontWeight: 600"] { font-size: 26px !important; }
+[data-a11y="true"] .vacation-card span { font-size: 20px !important; }
+
+/* ── A11y Font Sizes (20px minimum) ── */
+[data-a11y="true"] body { font-size: 20px !important; }
+[data-a11y="true"] .label { font-size: 20px !important; }
+[data-a11y="true"] .badge { font-size: 20px !important; }
+[data-a11y="true"] .toast { font-size: 22px !important; }
+[data-a11y="true"] .sheet-title { font-size: 28px !important; }
+[data-a11y="true"] .btn { font-size: 22px !important; }
+[data-a11y="true"] .btn-sm { font-size: 20px !important; }
+[data-a11y="true"] .btn-add { font-size: 20px !important; }
+[data-a11y="true"] .form-input { font-size: 22px !important; }
+[data-a11y="true"] .tab-bar-item { font-size: 20px !important; }
+[data-a11y="true"] .data-table,
+[data-a11y="true"] .data-table td,
+[data-a11y="true"] .data-table th { font-size: 20px !important; }
+[data-a11y="true"] .fun-fact-card { font-size: 20px !important; }
+[data-a11y="true"] .day-title-label { font-size: 22px !important; }
+[data-a11y="true"] .itin-card-title { font-size: 22px !important; }
+[data-a11y="true"] .itin-card-time,
+[data-a11y="true"] .itin-card-desc,
+[data-a11y="true"] .itin-card-loc { font-size: 20px !important; }
+[data-a11y="true"] .stat-value { font-size: 36px !important; }
+[data-a11y="true"] .stat-label { font-size: 20px !important; }
+[data-a11y="true"] .summary-card-label { font-size: 20px !important; }
+[data-a11y="true"] .summary-card-value { font-size: 44px !important; }
+[data-a11y="true"] .summary-card-meta,
+[data-a11y="true"] .summary-card-action { font-size: 20px !important; }
+[data-a11y="true"] .trip-total-label { font-size: 20px !important; }
+[data-a11y="true"] .trip-total-meta { font-size: 20px !important; }
+[data-a11y="true"] .trip-total-amount { font-size: 40px !important; }
+[data-a11y="true"] .expense-row { font-size: 20px !important; }
+[data-a11y="true"] .reaction-chip { font-size: 20px !important; padding: 12px 20px !important; }
+[data-a11y="true"] .login-response { font-size: 20px !important; }
+
+/* Catch-all for inline small font-size */
+[data-a11y="true"] [style*="font-size: 11"],
+[data-a11y="true"] [style*="font-size: 12"],
+[data-a11y="true"] [style*="font-size: 13"],
+[data-a11y="true"] [style*="font-size: 14"],
+[data-a11y="true"] [style*="font-size: 15"] { font-size: 20px !important; }
+
+/* Headings */
+[data-a11y="true"] .heading-serif.xl { font-size: 52px !important; }
+[data-a11y="true"] .heading-serif.lg { font-size: 38px !important; }
+[data-a11y="true"] .heading-serif.md { font-size: 28px !important; }
+[data-a11y="true"] .heading-serif.sm { font-size: 24px !important; }
+[data-a11y="true"] .topbar-title { font-size: 28px !important; }
+[data-a11y="true"] .desk-header-title { font-size: 36px !important; }
+[data-a11y="true"] .hero-title { font-size: 44px !important; }
+
+/* Mobile nav: fit all 5 items with large icons */
+[data-a11y="true"] .mobile-nav-item svg { width: 28px !important; height: 28px !important; }
+[data-a11y="true"] .mobile-nav-item { font-size: 13px !important; gap: 2px !important; padding: 4px 4px !important; letter-spacing: -0.3px !important; }
+[data-a11y="true"] .mobile-nav { padding: 4px 0 calc(6px + var(--safe-bottom)) !important; }
+
+/* Sidebar */
+[data-a11y="true"] .sidebar-nav-item { font-size: 22px !important; padding: 14px 16px !important; }
+[data-a11y="true"] .sidebar-nav-item svg { width: 28px !important; height: 28px !important; }
+[data-a11y="true"] .sidebar-logo { font-size: 28px !important; }
+
+/* Larger icon buttons */
+[data-a11y="true"] .icon-btn { width: 48px !important; height: 48px !important; min-width: 48px !important; min-height: 48px !important; }
+[data-a11y="true"] .icon-btn svg { width: 24px !important; height: 24px !important; }
+
+/* Avatar sizes */
+[data-a11y="true"] .avatar { width: 48px !important; height: 48px !important; font-size: 20px !important; }
+[data-a11y="true"] .avatar.lg { width: 72px !important; height: 72px !important; font-size: 28px !important; }
+[data-a11y="true"] .avatar.xl { width: 104px !important; height: 104px !important; font-size: 38px !important; }
+
+/* Underline clickable text */
+[data-a11y="true"] .summary-card-action { text-decoration: underline; }
+[data-a11y="true"] .itin-card-loc { text-decoration: underline !important; }
