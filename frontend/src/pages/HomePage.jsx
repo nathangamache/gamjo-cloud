@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Pin, ChevronLeft, ChevronRight, Link as LinkIcon, ThumbUp, Check, MapIcon, Navigation, Globe, Vote, Image, Calendar, Users, Settings, Dollar, Trash } from '../components/Icons';
+import { Pin, ChevronLeft, ChevronRight, Link as LinkIcon, ThumbUp, Check, MapIcon, Navigation, Globe, Vote, Image, Calendar, Users, Settings, Dollar, Trash, X } from '../components/Icons';
 import { Avatar, useApp } from '../App';
 import { SkeletonHome } from '../components/Shared';
 import { api } from '../utils/api';
@@ -600,6 +600,7 @@ export default function HomePage({ trip, members, user, navigate, expenses: prop
   // Pick a random banner (recalculates when trip changes)
   const [bannerSeed] = useState(() => Math.random());
   const [showOnboarding, setShowOnboarding] = useState(() => user?.onboarded === false);
+  const [viewingMember, setViewingMember] = useState(null);
   const bannerUrl = useMemo(() => {
     if (!trip) return null;
     const pool = isDesktop
@@ -717,7 +718,7 @@ export default function HomePage({ trip, members, user, navigate, expenses: prop
                 <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{headings.theSquad}</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(52px, 1fr))', gap: 6 }}>
                   {members.map(m => (
-                    <div key={m.id || m.user_id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                    <div key={m.id || m.user_id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, cursor: m.avatar_url ? 'pointer' : 'default' }} onClick={() => m.avatar_url && setViewingMember(m)}>
                       <Avatar user={m} size="sm" />
                       <span style={{ fontSize: 13, color: 'var(--text-secondary)', textAlign: 'center', lineHeight: 1.2 }}>{m.name?.split(' ')[0]}</span>
                     </div>
@@ -731,6 +732,20 @@ export default function HomePage({ trip, members, user, navigate, expenses: prop
             <div style={{ flex: 1 }}><div style={{ fontSize: 13, fontWeight: 500 }}>All vacations</div><div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Past, present, and future adventures</div></div><ChevronRight size={16} color="var(--text-muted)" />
           </div>
         </div>
+
+        {/* Member photo lightbox */}
+        {viewingMember && (
+          <div className="sheet-backdrop" onClick={() => setViewingMember(null)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,.85)', zIndex: 300 }}>
+            <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, maxWidth: '90vw' }}>
+              <button onClick={() => setViewingMember(null)} style={{ alignSelf: 'flex-end', width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,.15)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><X size={18} color="#fff" /></button>
+              <img src={viewingMember.avatar_url} alt={viewingMember.name} style={{ width: 280, height: 280, borderRadius: '50%', objectFit: 'cover', boxShadow: '0 8px 40px rgba(0,0,0,.4)' }} />
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 20, fontWeight: 600, color: '#fff' }}>{viewingMember.name}</div>
+                {viewingMember.email && <div style={{ fontSize: 14, color: 'rgba(255,255,255,.6)', marginTop: 4 }}>{viewingMember.email}</div>}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -772,7 +787,7 @@ export default function HomePage({ trip, members, user, navigate, expenses: prop
         <div className="heading-serif md mb-sm">{headings.theSquad}</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(64px, 1fr))', gap: 8, marginBottom: 16 }}>
           {members.map(m => (
-            <div key={m.id || m.user_id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+            <div key={m.id || m.user_id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: m.avatar_url ? 'pointer' : 'default' }} onClick={() => m.avatar_url && setViewingMember(m)}>
               <Avatar user={m} />
               <span style={{ fontSize: 13, color: 'var(--text-secondary)', textAlign: 'center', lineHeight: 1.2 }}>{m.name?.split(' ')[0]}</span>
             </div>
@@ -790,6 +805,20 @@ export default function HomePage({ trip, members, user, navigate, expenses: prop
           <div style={{ flex: 1 }}><div style={{ fontSize: 13, fontWeight: 500 }}>All vacations</div><div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Past, present, and future adventures</div></div><ChevronRight size={16} color="var(--text-muted)" />
         </div>
       </div>
+
+      {/* Member photo lightbox */}
+      {viewingMember && (
+        <div className="sheet-backdrop" onClick={() => setViewingMember(null)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,.85)', zIndex: 300 }}>
+          <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, maxWidth: '90vw' }}>
+            <button onClick={() => setViewingMember(null)} style={{ alignSelf: 'flex-end', width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,.15)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><X size={18} color="#fff" /></button>
+            <img src={viewingMember.avatar_url} alt={viewingMember.name} style={{ width: 280, height: 280, borderRadius: '50%', objectFit: 'cover', boxShadow: '0 8px 40px rgba(0,0,0,.4)' }} />
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 20, fontWeight: 600, color: '#fff' }}>{viewingMember.name}</div>
+              {viewingMember.email && <div style={{ fontSize: 14, color: 'rgba(255,255,255,.6)', marginTop: 4 }}>{viewingMember.email}</div>}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
