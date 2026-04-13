@@ -1253,12 +1253,25 @@ body { font-size: 16px; }
 [data-a11y="true"] .btn-secondary { color: var(--text) !important; border: 2px solid var(--text) !important; }
 [data-a11y="true"] .btn-ghost { color: var(--text) !important; border: 2px solid var(--text) !important; }
 
-/* Elements on gradient backgrounds stay white */
-[data-a11y="true"] .stat-card * { color: #fff !important; }
-[data-a11y="true"] .trip-total-card * { color: #fff !important; }
+/* Elements on gradient backgrounds stay white - explicit classes for specificity */
+[data-a11y="true"] .stat-card,
+[data-a11y="true"] .stat-card *,
+[data-a11y="true"] .stat-card .stat-value,
+[data-a11y="true"] .stat-card .stat-label { color: #fff !important; }
+[data-a11y="true"] .trip-total-card,
+[data-a11y="true"] .trip-total-card *,
+[data-a11y="true"] .trip-total-card .trip-total-label,
+[data-a11y="true"] .trip-total-card .trip-total-amount,
+[data-a11y="true"] .trip-total-card .trip-total-meta { color: #fff !important; }
+[data-a11y="true"][data-theme="dark"] .trip-total-card,
 [data-a11y="true"][data-theme="dark"] .trip-total-card * { color: var(--text) !important; }
+[data-a11y="true"] .summary-card,
 [data-a11y="true"] .summary-card * { color: #fff !important; }
 [data-a11y="true"] .vacation-card * { color: #fff !important; }
+
+/* Voter names: keep green/red coloring even in a11y mode */
+[data-a11y="true"] .reaction-row + div span[style*="color: var(--sage)"] { color: var(--sage) !important; }
+[data-a11y="true"] .reaction-row + div span[style*="color: var(--danger)"] { color: var(--danger) !important; }
 
 /* Hero: ALL elements over the image must be white - high specificity to beat rgba catch-all */
 [data-a11y="true"] .hero-content * { color: #fff !important; }

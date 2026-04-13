@@ -253,7 +253,7 @@ export default function App() {
     setIsAdmin(adminOnTrip);
     if (adminOnTrip) setIsGlobalAdmin(true);
     return mems;
-  }, [user]);
+  }, [user?.id]);
   const refreshExpenses = useCallback(async () => { if (!trip?.id) return; const r = await api.get(`/api/trips/${trip.id}/expenses`).catch(() => ({ data: [] })); setExpenses(Array.isArray(r.data) ? r.data : []); }, [trip?.id]);
   const refreshItinerary = useCallback(async () => { if (!trip?.id) return; const r = await api.get(`/api/trips/${trip.id}/itinerary`).catch(() => ({ data: [] })); setItinerary(Array.isArray(r.data) ? r.data : []); }, [trip?.id]);
   const refreshMedia = useCallback(async () => { if (!trip?.id) return; const r = await api.get(`/api/trips/${trip.id}/media`).catch(() => ({ data: [] })); setMedia(Array.isArray(r.data) ? r.data : []); }, [trip?.id]);
@@ -308,7 +308,7 @@ export default function App() {
       }
       setDataLoaded(true);
     }).catch(err => { console.error('Failed to fetch trips:', err); setDataLoaded(true); });
-  }, [user]);
+  }, [user?.id]);
   if (loading) return <div className="app" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}><div className="heading-serif lg" style={{ color: 'var(--primary)' }}>GamJo</div></div>;
   if (window.location.pathname === '/verify') return <VerifyPage />;
   if (!user) {
