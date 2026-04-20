@@ -1,6 +1,7 @@
-import { useState, useRef } from 'react';
-import { ChevronLeft, Image, Edit, Trash, X, Check } from '../components/Icons';
-import { Sheet, Toast, useConfirm, EmptyState } from '../components/Shared';
+import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { ChevronLeft, ChevronRight, Image, Edit, Trash, X, Check } from '../components/Icons';
+import { Sheet, Toast, useConfirm, EmptyState, SkeletonPhotoGrid } from '../components/Shared';
 import { api } from '../utils/api';
 import { formatDate, groupBy } from '../utils/helpers';
 import { useApp } from '../App';
@@ -9,6 +10,8 @@ export default function GalleryPage({ trip, user, onBack, photos: propPhotos, se
   const { isDesktop, isAdmin, media: ctxMedia, setMedia: ctxSetMedia } = useApp();
   const photos = propPhotos || ctxMedia || [];
   const setPhotos = propSetPhotos || ctxSetMedia || (() => {});
+  const [ready, setReady] = useState(false);
+  useEffect(() => { setReady(true); }, []);
   const [editingPhoto, setEditingPhoto] = useState(null);
   const [viewingPhoto, setViewingPhoto] = useState(null);
   const [editForm, setEditForm] = useState({ caption: '', date: '', location: '' });
@@ -50,7 +53,8 @@ export default function GalleryPage({ trip, user, onBack, photos: propPhotos, se
       {isDesktop && <div className="desk-header"><div className="desk-header-title">Gallery</div><div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><button onClick={() => { setSelectMode(!selectMode); setSelected(new Set()); }} style={{ background: 'none', border: 'none', fontSize: 13, color: selectMode ? 'var(--danger)' : 'var(--primary)', cursor: 'pointer', fontWeight: 500 }}>{selectMode ? 'Cancel' : 'Select'}</button><span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{photos.length} photos</span></div></div>}
 
       <div style={{ padding: isDesktop ? '24px 32px' : '12px 12px' }}>
-        {Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b)).map(([date, datePhotos]) => (
+        {!ready && photos.length > 0 && <SkeletonPhotoGrid count={9} />}
+        {ready && Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b)).map(([date, datePhotos]) => (
           <div key={date}>
             <div style={{ padding: '12px 16px 6px', fontSize: 13, fontWeight: 500, color: 'var(--warm)', fontFamily: 'var(--font-serif)', letterSpacing: '0.01em' }}>{date === 'Unknown' ? 'No date' : formatDate(date)}</div>
             <div className="gallery-grid">
@@ -93,26 +97,28 @@ export default function GalleryPage({ trip, user, onBack, photos: propPhotos, se
         </Sheet>
       )}
 
-      {viewingPhoto && (
-        <div className="sheet-backdrop" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,.92)' }} onClick={() => setViewingPhoto(null)}>
-          <div onClick={e => e.stopPropagation()} style={{ position: 'relative', maxWidth: '92vw', maxHeight: '88vh', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <button onClick={() => setViewingPhoto(null)} style={{ position: 'absolute', top: -12, right: -12, width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,.15)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10 }}><X size={18} color="#fff" /></button>
-            <img src={viewingPhoto.url} alt={viewingPhoto.caption} style={{ maxWidth: '92vw', maxHeight: '78vh', borderRadius: 8, objectFit: 'contain', touchAction: 'pan-y' }}
+      {viewingPhoto && createPortal(
+        <div className="photo-lightbox" onClick={() => setViewingPhoto(null)}>
+          <div onClick={e => e.stopPropagation()} style={{ position: 'relative', width: '100%', maxWidth: 800, padding: '0 16px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <button onClick={() => setViewingPhoto(null)} style={{ position: 'fixed', top: 'calc(16px + env(safe-area-inset-top, 0px))', right: 16, width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,.2)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 310 }}><X size={22} color="#fff" /></button>
+            <img src={viewingPhoto.url} alt={viewingPhoto.caption || ''} style={{ maxWidth: '92vw', maxHeight: '75vh', borderRadius: 8, objectFit: 'contain', touchAction: 'pan-y' }}
               onTouchStart={e => { touchStart.current = e.touches[0].clientX; }}
               onTouchEnd={e => { if (touchStart.current === null) return; const diff = e.changedTouches[0].clientX - touchStart.current; touchStart.current = null; if (Math.abs(diff) < 50) return; if (diff < 0) viewNext(); else viewPrev(); }}
+              onError={e => { e.target.style.display = 'none'; }}
             />
-            {viewIdx > 0 && <button onClick={viewPrev} style={{ position: 'absolute', top: '50%', left: -20, transform: 'translateY(-50%)', width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,.15)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ChevronLeft size={20} color="#fff" /></button>}
-            {viewIdx < photos.length - 1 && <button onClick={viewNext} style={{ position: 'absolute', top: '50%', right: -20, transform: 'translateY(-50%)', width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,.15)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ChevronRight size={20} color="#fff" /></button>}
-            <div style={{ marginTop: 10, textAlign: 'center', color: '#fff' }}>
-              <div style={{ fontSize: 14, fontWeight: 500 }}>{viewingPhoto.caption || 'Untitled'}</div>
-              <div style={{ fontSize: 13, opacity: .6, marginTop: 2 }}>{viewingPhoto.uploaded_by_name} {viewingPhoto.location ? `\u00b7 ${viewingPhoto.location}` : ''}</div>
+            {viewIdx > 0 && <button onClick={viewPrev} style={{ position: 'fixed', top: '50%', left: 8, transform: 'translateY(-50%)', width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,.2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 310 }}><ChevronLeft size={22} color="#fff" /></button>}
+            {viewIdx < photos.length - 1 && <button onClick={viewNext} style={{ position: 'fixed', top: '50%', right: 8, transform: 'translateY(-50%)', width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,.2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 310 }}><ChevronRight size={22} color="#fff" /></button>}
+            <div style={{ marginTop: 12, textAlign: 'center', color: '#fff' }}>
+              <div style={{ fontSize: 15, fontWeight: 500 }}>{viewingPhoto.caption || 'Untitled'}</div>
+              <div style={{ fontSize: 13, opacity: .6, marginTop: 4 }}>{viewingPhoto.uploaded_by_name} {viewingPhoto.location ? `\u00b7 ${viewingPhoto.location}` : ''}</div>
             </div>
-            {canEdit(viewingPhoto) && <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-              <button onClick={() => { startEdit(viewingPhoto); setViewingPhoto(null); }} style={{ padding: '8px 16px', borderRadius: 10, background: 'rgba(255,255,255,.15)', border: 'none', color: '#fff', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}><Edit size={12} /> Edit</button>
-              <button onClick={() => handleDelete(viewingPhoto.id)} style={{ padding: '8px 16px', borderRadius: 10, background: 'rgba(200,70,70,.3)', border: 'none', color: '#ff8888', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}><Trash size={12} /> Delete</button>
+            {canEdit(viewingPhoto) && <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+              <button onClick={() => { startEdit(viewingPhoto); setViewingPhoto(null); }} style={{ padding: '10px 18px', borderRadius: 10, background: 'rgba(255,255,255,.15)', border: 'none', color: '#fff', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}><Edit size={14} /> Edit</button>
+              <button onClick={() => handleDelete(viewingPhoto.id)} style={{ padding: '10px 18px', borderRadius: 10, background: 'rgba(200,70,70,.3)', border: 'none', color: '#ff8888', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}><Trash size={14} /> Delete</button>
             </div>}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {selectMode && selected.size > 0 && (

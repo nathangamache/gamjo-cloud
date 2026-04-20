@@ -249,7 +249,6 @@ textarea:focus-visible {
   .app { max-width: 100%; }
   .desktop-sidebar { display: none; }
   .page-content { padding-bottom: calc(var(--nav-height) + 16px + var(--safe-bottom)); }
-  .page-content > div { animation: pageIn 0.2s ease-out; }
 }
 @media (min-width: 768px) {
   .app {
@@ -821,6 +820,17 @@ input[type="time"].form-input {
 }
 /* Upload Zone */
 .upload-zone { border: 1.5px dashed var(--border); border-radius: var(--radius-sm); padding: 24px; text-align: center; background: var(--surface); }
+/* Photo Lightbox (separate from sheet-backdrop to avoid bottom-sheet conflicts) */
+.photo-lightbox {
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0.95);
+  z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+  animation: fadeIn 0.2s ease-out;
+  touch-action: none;
+}
+.photo-lightbox img { display: block; max-width: 100%; }
+
 /* Bottom Sheet */
 .sheet-backdrop {
   position: fixed; inset: 0; background: rgba(44, 40, 37, .35);
@@ -903,7 +913,7 @@ input[type="time"].form-input {
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 @keyframes confirmIn { from { opacity: 0; transform: scale(0.95) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-@keyframes pageIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pageIn { from { opacity: 0; } to { opacity: 1; } }
 /* Desktop Content Area */
 @media (min-width: 768px) {
   .desk-content { padding: 24px 32px; }
