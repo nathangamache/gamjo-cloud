@@ -6,7 +6,7 @@ import { api } from '../utils/api';
 import { formatMoney, msg } from '../utils/helpers';
 
 export default function ProfilePage({ user, trip, members, groups: propGroups, onLogout }) {
-  const { isAdmin, isDesktop, groups: ctxGroups, setUser, expenses: ctxExpenses, itinerary: ctxItinerary, media: ctxMedia, dataLoaded, theme, toggleTheme, reduceMotion, toggleReduceMotion, a11yMode, toggleA11y } = useApp();
+  const { isAdmin, isDesktop, groups: ctxGroups, setUser, expenses: ctxExpenses, itinerary: ctxItinerary, media: ctxMedia, dataLoaded, theme, themePref, setThemePref, reduceMotion, toggleReduceMotion, a11yMode, toggleA11y } = useApp();
   const groups = propGroups || ctxGroups || [];
   const expenses = ctxExpenses || [];
   const itinerary = ctxItinerary || [];
@@ -118,19 +118,23 @@ export default function ProfilePage({ user, trip, members, groups: propGroups, o
           <span style={{ fontSize: 14 }}>Edit profile</span><ChevronRight size={15} color="var(--text-muted)" />
         </div>
 
-        <div className="card mb-lg" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 14 }}>Dark mode</span>
-          <button onClick={toggleTheme} style={{
-            width: 48, height: 28, borderRadius: 14, border: 'none', cursor: 'pointer', padding: 2,
-            background: theme === 'dark' ? 'var(--primary)' : 'var(--border)',
-            transition: 'background 0.2s', position: 'relative',
-          }}>
-            <div style={{
-              width: 24, height: 24, borderRadius: '50%', background: '#fff',
-              transition: 'transform 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,.2)',
-              transform: theme === 'dark' ? 'translateX(20px)' : 'translateX(0)',
-            }} />
-          </button>
+        <div className="card mb-lg">
+          <span style={{ fontSize: 14, display: 'block', marginBottom: 10 }}>Appearance</span>
+          <div style={{ display: 'flex', gap: 0, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border)' }}>
+            {[
+              { value: 'system', label: 'System' },
+              { value: 'light', label: 'Light' },
+              { value: 'dark', label: 'Dark' },
+            ].map(opt => (
+              <button key={opt.value} onClick={() => setThemePref(opt.value)} style={{
+                flex: 1, padding: '10px 0', border: 'none', cursor: 'pointer',
+                fontSize: 14, fontWeight: themePref === opt.value ? 600 : 400,
+                background: themePref === opt.value ? 'var(--primary)' : 'var(--surface)',
+                color: themePref === opt.value ? '#fff' : 'var(--text-secondary)',
+                transition: 'background 0.2s, color 0.2s',
+              }}>{opt.label}</button>
+            ))}
+          </div>
         </div>
 
         <div className="card mb-lg" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

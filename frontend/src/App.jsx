@@ -10,6 +10,7 @@ import NotFoundPage from './pages/NotFoundPage';
 import HomePage from './pages/HomePage';
 import ItineraryPage from './pages/ItineraryPage';
 import ExpensesPage from './pages/ExpensesPage';
+import PhotosPage from './pages/PhotosPage';
 import ProfilePage from './pages/ProfilePage';
 import AdminPage from './pages/AdminPage';
 import GlobalAdminPage from './pages/GlobalAdminPage';
@@ -183,22 +184,40 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isGlobalAdmin, setIsGlobalAdmin] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
-  const [theme, setThemeState] = useState(() => localStorage.getItem('gamjo-theme') || 'light');
+  const [themePref, setThemePrefState] = useState(() => localStorage.getItem('gamjo-theme') || 'system');
+  const [systemDark, setSystemDark] = useState(() => window.matchMedia?.('(prefers-color-scheme: dark)').matches || false);
   const [reduceMotion, setReduceMotionState] = useState(() => localStorage.getItem('gamjo-reduce-motion') === 'true');
   const [a11yMode, setA11yModeState] = useState(() => localStorage.getItem('gamjo-a11y') === 'true');
   const prefsLoaded = useRef(false);
 
-  const applyPrefs = (t, rm, a) => {
-    document.documentElement.setAttribute('data-theme', t);
+  // Listen for system dark mode changes
+  useEffect(() => {
+    const mq = window.matchMedia?.('(prefers-color-scheme: dark)');
+    if (!mq) return;
+    const handler = (e) => setSystemDark(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
+  // Resolve actual theme from preference
+  const theme = themePref === 'system' ? (systemDark ? 'dark' : 'light') : themePref;
+
+  const applyPrefs = (resolvedTheme, rm, a) => {
+    document.documentElement.setAttribute('data-theme', resolvedTheme);
     document.documentElement.setAttribute('data-reduce-motion', String(rm));
     document.documentElement.setAttribute('data-a11y', String(a));
   };
 
-  const toggleTheme = () => {
-    const next = theme === 'dark' ? 'light' : 'dark';
-    setThemeState(next);
+  // Re-apply when system preference changes
+  useEffect(() => {
+    applyPrefs(theme, reduceMotion, a11yMode);
+  }, [systemDark]);
+
+  const setThemePref = (next) => {
+    setThemePrefState(next);
     localStorage.setItem('gamjo-theme', next);
-    applyPrefs(next, reduceMotion, a11yMode);
+    const resolved = next === 'system' ? (systemDark ? 'dark' : 'light') : next;
+    applyPrefs(resolved, reduceMotion, a11yMode);
     if (setUser) setUser(prev => prev ? { ...prev, theme: next } : prev);
     api.patch('/api/auth/me', { theme: next }).catch(() => {});
   };
@@ -226,19 +245,19 @@ export default function App() {
   useEffect(() => {
     if (!user || prefsLoaded.current) return;
     prefsLoaded.current = true;
-    // Only sync from DB if user actually has preference fields set
     const hasDbPrefs = user.theme !== undefined && user.theme !== null;
     if (!hasDbPrefs) return;
-    const t = user.theme || 'light';
+    const t = user.theme || 'system';
     const rm = user.reduce_motion === true;
     const a = user.a11y_mode === true;
-    setThemeState(t);
+    setThemePrefState(t);
     setReduceMotionState(rm);
     setA11yModeState(a);
     localStorage.setItem('gamjo-theme', t);
     localStorage.setItem('gamjo-reduce-motion', String(rm));
     localStorage.setItem('gamjo-a11y', String(a));
-    applyPrefs(t, rm, a);
+    const resolved = t === 'system' ? (systemDark ? 'dark' : 'light') : t;
+    applyPrefs(resolved, rm, a);
   }, [user?.id]);
   const activeTrip = trip && isTripCurrent(trip);
   const singleActiveTrip = activeTrip && allTrips.filter(t => isTripCurrent(t)).length === 1;
@@ -362,7 +381,7 @@ export default function App() {
     }
   };
   return (
-    <AppContext.Provider value={{ user, setUser, trip, allTrips, members, groups, expenses, itinerary, media, isAdmin, isGlobalAdmin, isDesktop, inTrip, dataLoaded, theme, toggleTheme, reduceMotion, toggleReduceMotion, a11yMode, toggleA11y, navigate, openTrip, setTrip, setMembers, setGroups, setExpenses, setItinerary, setMedia, refreshExpenses, refreshItinerary, refreshMedia, refreshMembers, refreshGroups }}>
+    <AppContext.Provider value={{ user, setUser, trip, allTrips, members, groups, expenses, itinerary, media, isAdmin, isGlobalAdmin, isDesktop, inTrip, dataLoaded, theme, themePref, setThemePref, reduceMotion, toggleReduceMotion, a11yMode, toggleA11y, navigate, openTrip, setTrip, setMembers, setGroups, setExpenses, setItinerary, setMedia, refreshExpenses, refreshItinerary, refreshMedia, refreshMembers, refreshGroups }}>
       <div className="app">
         {isDesktop && <DesktopSidebar tab={page} navigate={navigate} user={user} isAdmin={isAdmin} isGlobalAdmin={isGlobalAdmin} onLogout={handleLogout} inTrip={inTrip} />}
         <div className="page-content">{renderPage()}</div>
