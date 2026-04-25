@@ -10,7 +10,6 @@ import NotFoundPage from './pages/NotFoundPage';
 import HomePage from './pages/HomePage';
 import ItineraryPage from './pages/ItineraryPage';
 import ExpensesPage from './pages/ExpensesPage';
-import PhotosPage from './pages/PhotosPage';
 import ProfilePage from './pages/ProfilePage';
 import AdminPage from './pages/AdminPage';
 import GlobalAdminPage from './pages/GlobalAdminPage';
@@ -53,7 +52,7 @@ function parseRoute() {
     if (rest === 'itinerary') return { tripId, page: 'itinerary', adminTab: 0 };
     if (rest === 'expenses') return { tripId, page: 'expenses', adminTab: 0 };
     if (rest === 'photos') return { tripId, page: 'photos', adminTab: 0 };
-    if (rest === 'gallery') return { tripId, page: 'gallery', adminTab: 0 };
+    if (rest === 'gallery') return { tripId, page: 'photos', adminTab: 0 };
     if (rest === 'profile') return { tripId, page: 'trip-profile', adminTab: 0 };
     if (rest === 'admin' || rest === 'admin/overview') return { tripId, page: 'admin', adminTab: 0 };
     if (rest === 'admin/people') return { tripId, page: 'admin', adminTab: 1 };
@@ -244,7 +243,7 @@ export default function App() {
   const activeTrip = trip && isTripCurrent(trip);
   const singleActiveTrip = activeTrip && allTrips.filter(t => isTripCurrent(t)).length === 1;
   const inTrip = !!trip && (
-    ['trip-home', 'itinerary', 'expenses', 'photos', 'gallery', 'trip-profile', 'admin'].includes(page)
+    ['trip-home', 'itinerary', 'expenses', 'photos', 'trip-profile', 'admin'].includes(page)
     || (page === 'home' && singleActiveTrip)
   );
   const loadTripData = useCallback(async (tripId, currentUser) => {
@@ -352,9 +351,7 @@ export default function App() {
       case 'expenses':
         return <ExpensesPage trip={trip} user={user} members={members} groups={groups} expenses={expenses} setExpenses={setExpenses} refreshExpenses={refreshExpenses} />;
       case 'photos':
-        return <PhotosPage trip={trip} user={user} navigate={navigate} photos={media} setPhotos={setMedia} refreshMedia={refreshMedia} />;
-      case 'gallery':
-        return <GalleryPage trip={trip} user={user} onBack={() => navigate('photos')} photos={media} setPhotos={setMedia} refreshMedia={refreshMedia} />;
+        return <GalleryPage trip={trip} user={user} photos={media} setPhotos={setMedia} refreshMedia={refreshMedia} />;
       case 'profile':
         return <ProfilePage user={user} trip={null} members={[]} groups={[]} onLogout={handleLogout} />;
       case 'trip-profile':

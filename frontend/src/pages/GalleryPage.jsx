@@ -1,14 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Image, Edit, Trash, X, Check } from '../components/Icons';
+import { ChevronLeft, ChevronRight, Image, Edit, Trash, X, Check, Plus, Camera } from '../components/Icons';
 import { Sheet, Toast, useConfirm, EmptyState, SkeletonPhotoGrid } from '../components/Shared';
 import { api } from '../utils/api';
-import { formatDate, groupBy } from '../utils/helpers';
+import { formatDate, groupBy, msg } from '../utils/helpers';
 import { useApp } from '../App';
 
 export default function GalleryPage({ trip, user, onBack, photos: propPhotos, setPhotos: propSetPhotos, refreshMedia }) {
   const { isDesktop, isAdmin, media: ctxMedia, setMedia: ctxSetMedia } = useApp();
   const photos = propPhotos || ctxMedia || [];
   const setPhotos = propSetPhotos || ctxSetMedia || (() => {});
+  const isPrimary = !onBack; // true when this IS the photos tab (mobile)
   const [ready, setReady] = useState(false);
   useEffect(() => { setReady(true); }, []);
   const [editingPhoto, setEditingPhoto] = useState(null);
@@ -20,6 +21,35 @@ export default function GalleryPage({ trip, user, onBack, photos: propPhotos, se
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState(new Set());
   const confirm = useConfirm();
+
+  // Upload state
+  const [showUpload, setShowUpload] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({ done: 0, total: 0 });
+  const [pendingFiles, setPendingFiles] = useState([]);
+  const fileRef = useRef(null);
+
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    setPendingFiles(prev => [...prev, ...files]);
+    if (fileRef.current) fileRef.current.value = '';
+  };
+  const removePending = (idx) => setPendingFiles(prev => prev.filter((_, i) => i !== idx));
+  const handleUpload = async () => {
+    if (!pendingFiles.length) return;
+    setUploading(true);
+    setUploadProgress({ done: 0, total: pendingFiles.length });
+    let uploaded = 0;
+    for (const file of pendingFiles) {
+      const fd = new FormData(); fd.append('file', file);
+      try { await api.upload(`/api/trips/${trip.id}/media`, fd); uploaded++; } catch {}
+      setUploadProgress({ done: uploaded, total: pendingFiles.length });
+    }
+    if (refreshMedia) await refreshMedia();
+    setShowUpload(false); setUploading(false); setPendingFiles([]);
+    showToast(`Uploaded ${uploaded} photo${uploaded !== 1 ? 's' : ''}`, 'success');
+  };
 
   const canEdit = (p) => isAdmin || p.uploaded_by === user?.id || p.user_id === user?.id;
   const grouped = groupBy(photos, p => p.date || 'Unknown');
@@ -72,7 +102,7 @@ export default function GalleryPage({ trip, user, onBack, photos: propPhotos, se
     el.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#000;z-index:999999;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:16px;';
 
     el.innerHTML = `
-      <button id="lb-close" style="position:fixed;top:16px;right:16px;width:48px;height:48px;border-radius:24px;background:rgba(255,255,255,0.3);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:999999;">
+      <button id="lb-close" style="position:fixed;top:calc(14px + env(safe-area-inset-top, 0px));right:16px;width:48px;height:48px;border-radius:24px;background:rgba(255,255,255,0.3);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:999999;">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
       <img src="${viewingPhoto.url}" alt="" style="max-width:92vw;max-height:70vh;object-fit:contain;border-radius:8px;display:block;" />
@@ -114,7 +144,22 @@ export default function GalleryPage({ trip, user, onBack, photos: propPhotos, se
 
   return (
     <div style={{ background: 'var(--bg)' }}>
-      {!isDesktop && <div className="topbar"><button className="topbar-back" onClick={onBack}><ChevronLeft size={16} /></button><span className="topbar-title">Gallery</span><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><button onClick={() => { setSelectMode(!selectMode); setSelected(new Set()); }} style={{ background: 'none', border: 'none', fontSize: 13, color: selectMode ? 'var(--danger)' : 'var(--primary)', cursor: 'pointer', fontWeight: 500 }}>{selectMode ? 'Cancel' : 'Select'}</button><span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{photos.length}</span></div></div>}
+      {!isDesktop && isPrimary && (
+        <div className="topbar">
+          <span className="topbar-title">Photos</span>
+          <button className="btn-add" onClick={() => setShowUpload(true)}><Plus size={13} /> Upload</button>
+        </div>
+      )}
+      {!isDesktop && !isPrimary && (
+        <div className="topbar">
+          <button className="topbar-back" onClick={onBack}><ChevronLeft size={16} /></button>
+          <span className="topbar-title">Gallery</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button onClick={() => { setSelectMode(!selectMode); setSelected(new Set()); }} style={{ background: 'none', border: 'none', fontSize: 13, color: selectMode ? 'var(--danger)' : 'var(--primary)', cursor: 'pointer', fontWeight: 500 }}>{selectMode ? 'Cancel' : 'Select'}</button>
+            <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{photos.length}</span>
+          </div>
+        </div>
+      )}
       {isDesktop && <div className="desk-header"><div className="desk-header-title">Gallery</div><div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><button onClick={() => { setSelectMode(!selectMode); setSelected(new Set()); }} style={{ background: 'none', border: 'none', fontSize: 13, color: selectMode ? 'var(--danger)' : 'var(--primary)', cursor: 'pointer', fontWeight: 500 }}>{selectMode ? 'Cancel' : 'Select'}</button><span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{photos.length} photos</span></div></div>}
 
       <div style={{ padding: isDesktop ? '24px 32px' : '12px 12px' }}>
@@ -137,9 +182,8 @@ export default function GalleryPage({ trip, user, onBack, photos: propPhotos, se
                     </div>
                   )}
                   {!selectMode && canEdit(p) && (
-                    <div style={{ position: 'absolute', top: 6, right: 6, display: 'flex', gap: 4 }}>
+                    <div style={{ position: 'absolute', top: 6, right: 6 }}>
                       <button className="gallery-item-edit" style={{ position: 'static' }} onClick={e => { e.stopPropagation(); startEdit(p); }}><Edit size={12} /></button>
-                      <button className="gallery-item-edit" style={{ position: 'static', background: 'rgba(200,60,60,.5)' }} onClick={e => { e.stopPropagation(); handleDelete(p.id); }}><Trash size={12} /></button>
                     </div>
                   )}
                 </div>
@@ -147,11 +191,12 @@ export default function GalleryPage({ trip, user, onBack, photos: propPhotos, se
             </div>
           </div>
         ))}
-        {photos.length === 0 && <EmptyState type="photos" title="No pics yet" message="Someone snap a photo before we forget everything." />}
+        {photos.length === 0 && <EmptyState type="photos" title="No pics yet" message="Someone snap a photo before we forget everything." action="Upload photos" onAction={() => setShowUpload(true)} />}
       </div>
 
       {editingPhoto && (
         <Sheet onClose={() => setEditingPhoto(null)} title="Edit photo details">
+          {editingPhoto.url && <div style={{ borderRadius: 10, overflow: 'hidden', marginBottom: 16 }}><img src={editingPhoto.thumbnail_url || editingPhoto.url} alt="" style={{ width: '100%', maxHeight: 200, objectFit: 'cover' }} /></div>}
           <div className="form-group"><label className="label">Caption</label><input className="form-input" value={editForm.caption} onChange={e => setEditForm(f => ({ ...f, caption: e.target.value }))} placeholder="What's in this photo?" /></div>
           <div className="form-group"><label className="label">Date taken</label><input className="form-input" type="date" value={editForm.date} onChange={e => setEditForm(f => ({ ...f, date: e.target.value }))} /></div>
           <div className="form-group"><label className="label">Location</label><input className="form-input" value={editForm.location} onChange={e => setEditForm(f => ({ ...f, location: e.target.value }))} placeholder="e.g. West Bay Beach" /></div>
@@ -161,6 +206,41 @@ export default function GalleryPage({ trip, user, onBack, photos: propPhotos, se
           </div>
         </Sheet>
       )}
+
+      <input ref={fileRef} type="file" accept="image/*" multiple onChange={handleFileSelect} style={{ display: 'none' }} />
+      {showUpload && <Sheet onClose={() => { if (!uploading) { setShowUpload(false); setPendingFiles([]); } }} title="Upload photos">
+        {uploading ? (
+          <div style={{ padding: '12px 0' }}>
+            <div style={{ fontSize: 15, color: 'var(--primary)', fontWeight: 500, marginBottom: 8 }}>{uploadProgress.done} of {uploadProgress.total} uploaded</div>
+            <div style={{ width: '100%', height: 6, background: 'var(--surface-alt)', borderRadius: 3, overflow: 'hidden' }}>
+              <div style={{ width: `${uploadProgress.total ? (uploadProgress.done / uploadProgress.total) * 100 : 0}%`, height: '100%', background: 'var(--sage)', borderRadius: 3, transition: 'width 0.3s' }} />
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="upload-zone" style={{ marginBottom: 16, cursor: 'pointer' }} onClick={() => fileRef.current?.click()}>
+              <Camera size={24} color="var(--text-muted)" />
+              <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-secondary)', marginTop: 6 }}>{pendingFiles.length > 0 ? 'Tap to add more' : 'Tap to select photos'}</div>
+              <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>You can select multiple at once</div>
+            </div>
+            {pendingFiles.length > 0 && (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 16 }}>
+                  {pendingFiles.map((file, i) => (
+                    <div key={i} style={{ position: 'relative', aspectRatio: 1, borderRadius: 8, overflow: 'hidden' }}>
+                      <img src={URL.createObjectURL(file)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <button onClick={() => removePending(i)} style={{ position: 'absolute', top: 4, right: 4, width: 22, height: 22, borderRadius: '50%', background: 'rgba(0,0,0,.5)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                        <X size={12} color="#fff" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <button className="btn btn-primary" onClick={handleUpload}>Upload {pendingFiles.length} photo{pendingFiles.length !== 1 ? 's' : ''}</button>
+              </>
+            )}
+          </>
+        )}
+      </Sheet>}
 
       {selectMode && selected.size > 0 && (
         <div style={{ position: 'fixed', bottom: 'calc(var(--nav-height) + var(--safe-bottom) + 12px)', left: '50%', transform: 'translateX(-50%)', background: 'var(--danger)', color: '#fff', borderRadius: 'var(--radius-pill)', padding: '12px 24px', fontSize: 14, fontWeight: 500, cursor: 'pointer', boxShadow: '0 4px 20px rgba(0,0,0,.25)', display: 'flex', alignItems: 'center', gap: 8, zIndex: 40 }} onClick={handleBulkDelete}>

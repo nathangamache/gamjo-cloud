@@ -230,7 +230,7 @@ function PolaroidStrip({ photos, navigate }) {
       <div className="heading-serif md mb-sm">Recent snaps</div>
       <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 8, WebkitOverflowScrolling: 'touch' }}>
         {recent.map((p, i) => (
-          <div key={p.id} onClick={() => navigate('gallery')} style={{
+          <div key={p.id} onClick={() => navigate('photos')} style={{
             flexShrink: 0, width: 120, background: 'var(--surface)', borderRadius: 8,
             boxShadow: 'var(--shadow-md)', padding: '6px 6px 8px', cursor: 'pointer',
             transform: `rotate(${rotations[i % 4]}deg)`, transition: 'transform 0.2s',
@@ -795,7 +795,7 @@ export default function HomePage({ trip, members, user, navigate, expenses: prop
         </div>
 
         {/* #31: Gallery link on mobile */}
-        <div className="card mb-sm" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={() => navigate('gallery')}>
+        <div className="card mb-sm" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={() => navigate('photos')}>
           <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Image size={18} color="var(--primary)" /></div>
           <div style={{ flex: 1 }}><div style={{ fontSize: 13, fontWeight: 500 }}>Photo gallery</div><div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{stats.photoCount} memories and counting</div></div><ChevronRight size={16} color="var(--text-muted)" />
         </div>
