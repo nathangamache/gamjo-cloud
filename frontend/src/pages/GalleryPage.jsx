@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, Image, Edit, Trash, X, Check } from '../components/Icons';
 import { Sheet, Toast, useConfirm, EmptyState, SkeletonPhotoGrid } from '../components/Shared';
 import { api } from '../utils/api';
@@ -47,6 +46,72 @@ export default function GalleryPage({ trip, user, onBack, photos: propPhotos, se
   const viewNext = () => { if (viewIdx < photos.length - 1) setViewingPhoto(photos[viewIdx + 1]); };
   const viewPrev = () => { if (viewIdx > 0) setViewingPhoto(photos[viewIdx - 1]); };
 
+  // Lightbox rendered via direct DOM manipulation to bypass all React/CSS stacking issues
+  const lightboxRef = useRef(null);
+  useEffect(() => {
+    if (!viewingPhoto) {
+      if (lightboxRef.current) {
+        document.body.removeChild(lightboxRef.current);
+        lightboxRef.current = null;
+      }
+      return;
+    }
+
+    if (!lightboxRef.current) {
+      const el = document.createElement('div');
+      el.id = 'gallery-lightbox';
+      document.body.appendChild(el);
+      lightboxRef.current = el;
+    }
+
+    const el = lightboxRef.current;
+    const idx = photos.findIndex(p => p.id === viewingPhoto.id);
+    const hasPrev = idx > 0;
+    const hasNext = idx < photos.length - 1;
+
+    el.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#000;z-index:999999;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:16px;';
+
+    el.innerHTML = `
+      <button id="lb-close" style="position:fixed;top:16px;right:16px;width:48px;height:48px;border-radius:24px;background:rgba(255,255,255,0.3);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:999999;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <img src="${viewingPhoto.url}" alt="" style="max-width:92vw;max-height:70vh;object-fit:contain;border-radius:8px;display:block;" />
+      <div style="margin-top:16px;text-align:center;">
+        <div style="font-size:16px;font-weight:600;color:#fff;font-family:-apple-system,sans-serif;">${viewingPhoto.caption || 'Untitled'}</div>
+        <div style="font-size:14px;color:rgba(255,255,255,0.5);margin-top:4px;font-family:-apple-system,sans-serif;">${viewingPhoto.uploaded_by_name || ''}${viewingPhoto.location ? ' · ' + viewingPhoto.location : ''}</div>
+      </div>
+      ${hasPrev ? `<button id="lb-prev" style="position:fixed;left:8px;top:50%;transform:translateY(-50%);width:48px;height:48px;border-radius:24px;background:rgba(255,255,255,0.3);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:999999;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>` : ''}
+      ${hasNext ? `<button id="lb-next" style="position:fixed;right:8px;top:50%;transform:translateY(-50%);width:48px;height:48px;border-radius:24px;background:rgba(255,255,255,0.3);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:999999;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>` : ''}
+    `;
+
+    const onClose = () => setViewingPhoto(null);
+    const onPrev = () => { if (hasPrev) setViewingPhoto(photos[idx - 1]); };
+    const onNext = () => { if (hasNext) setViewingPhoto(photos[idx + 1]); };
+
+    el.querySelector('#lb-close').addEventListener('click', onClose);
+    el.addEventListener('click', (e) => { if (e.target === el) onClose(); });
+    if (hasPrev) el.querySelector('#lb-prev').addEventListener('click', onPrev);
+    if (hasNext) el.querySelector('#lb-next').addEventListener('click', onNext);
+
+    return () => {
+      // Cleanup listeners by replacing element content on next render
+    };
+  }, [viewingPhoto?.id]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (lightboxRef.current) {
+        document.body.removeChild(lightboxRef.current);
+        lightboxRef.current = null;
+      }
+    };
+  }, []);
+
   return (
     <div style={{ background: 'var(--bg)' }}>
       {!isDesktop && <div className="topbar"><button className="topbar-back" onClick={onBack}><ChevronLeft size={16} /></button><span className="topbar-title">Gallery</span><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><button onClick={() => { setSelectMode(!selectMode); setSelected(new Set()); }} style={{ background: 'none', border: 'none', fontSize: 13, color: selectMode ? 'var(--danger)' : 'var(--primary)', cursor: 'pointer', fontWeight: 500 }}>{selectMode ? 'Cancel' : 'Select'}</button><span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{photos.length}</span></div></div>}
@@ -61,7 +126,7 @@ export default function GalleryPage({ trip, user, onBack, photos: propPhotos, se
               {datePhotos.map((p, i) => (
                 <div key={p.id} className="gallery-item" style={{ background: p.url ? undefined : colors[(p.id + i) % colors.length], cursor: 'pointer', outline: selected.has(p.id) ? '3px solid var(--primary)' : 'none', outlineOffset: -3 }}
                   onClick={() => selectMode ? toggleSelect(p.id) : p.url && setViewingPhoto(p)}>
-                  {p.url ? <img src={p.url} alt={p.caption || ''} /> : (
+                  {p.url ? <img src={p.thumbnail_url || p.url} alt={p.caption || ''} loading="lazy" /> : (
                     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.7)' }}>
                       <Image size={20} /><span style={{ fontSize: 13, marginTop: 4 }}>{p.caption?.slice(0, 12)}</span>
                     </div>
@@ -95,30 +160,6 @@ export default function GalleryPage({ trip, user, onBack, photos: propPhotos, se
             {canEdit(editingPhoto) && <button className="btn btn-danger" style={{ flex: 0, width: 'auto', padding: '14px 16px' }} onClick={() => handleDelete(editingPhoto.id)}><Trash size={16} /></button>}
           </div>
         </Sheet>
-      )}
-
-      {viewingPhoto && createPortal(
-        <div className="photo-lightbox" onClick={() => setViewingPhoto(null)}>
-          <div onClick={e => e.stopPropagation()} style={{ position: 'relative', width: '100%', maxWidth: 800, padding: '0 16px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <button onClick={() => setViewingPhoto(null)} style={{ position: 'fixed', top: 'calc(16px + env(safe-area-inset-top, 0px))', right: 16, width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,.2)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 310 }}><X size={22} color="#fff" /></button>
-            <img src={viewingPhoto.url} alt={viewingPhoto.caption || ''} style={{ maxWidth: '92vw', maxHeight: '75vh', borderRadius: 8, objectFit: 'contain', touchAction: 'pan-y' }}
-              onTouchStart={e => { touchStart.current = e.touches[0].clientX; }}
-              onTouchEnd={e => { if (touchStart.current === null) return; const diff = e.changedTouches[0].clientX - touchStart.current; touchStart.current = null; if (Math.abs(diff) < 50) return; if (diff < 0) viewNext(); else viewPrev(); }}
-              onError={e => { e.target.style.display = 'none'; }}
-            />
-            {viewIdx > 0 && <button onClick={viewPrev} style={{ position: 'fixed', top: '50%', left: 8, transform: 'translateY(-50%)', width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,.2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 310 }}><ChevronLeft size={22} color="#fff" /></button>}
-            {viewIdx < photos.length - 1 && <button onClick={viewNext} style={{ position: 'fixed', top: '50%', right: 8, transform: 'translateY(-50%)', width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,.2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 310 }}><ChevronRight size={22} color="#fff" /></button>}
-            <div style={{ marginTop: 12, textAlign: 'center', color: '#fff' }}>
-              <div style={{ fontSize: 15, fontWeight: 500 }}>{viewingPhoto.caption || 'Untitled'}</div>
-              <div style={{ fontSize: 13, opacity: .6, marginTop: 4 }}>{viewingPhoto.uploaded_by_name} {viewingPhoto.location ? `\u00b7 ${viewingPhoto.location}` : ''}</div>
-            </div>
-            {canEdit(viewingPhoto) && <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-              <button onClick={() => { startEdit(viewingPhoto); setViewingPhoto(null); }} style={{ padding: '10px 18px', borderRadius: 10, background: 'rgba(255,255,255,.15)', border: 'none', color: '#fff', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}><Edit size={14} /> Edit</button>
-              <button onClick={() => handleDelete(viewingPhoto.id)} style={{ padding: '10px 18px', borderRadius: 10, background: 'rgba(200,70,70,.3)', border: 'none', color: '#ff8888', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}><Trash size={14} /> Delete</button>
-            </div>}
-          </div>
-        </div>,
-        document.body
       )}
 
       {selectMode && selected.size > 0 && (

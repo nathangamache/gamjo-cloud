@@ -3,10 +3,15 @@ Replace backend/routes/media.py with this file.
 Adds: PUT/PATCH metadata update, DELETE, uploaded_by_name in response.
 """
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID, uuid4
 import os, shutil, json
+try:
+    from utils.image_processing import generate_variants, cleanup_variants
+except ImportError:
+    generate_variants = None
+    cleanup_variants = None
 from database import get_db
 from models.models import Media, User
 from utils.deps import get_current_user
@@ -18,7 +23,7 @@ UPLOAD_DIR = os.environ.get("UPLOAD_DIR", "uploads")
 
 
 async def serialize_media(m: Media, db: AsyncSession) -> dict:
-    """Serialize media with uploaded_by_name."""
+    """Serialize media with uploaded_by_name and optimized image URLs."""
     # Get uploader name
     uploader_name = None
     user_id = getattr(m, 'user_id', None) or getattr(m, 'uploaded_by', None)
@@ -36,9 +41,29 @@ async def serialize_media(m: Media, db: AsyncSession) -> dict:
         except (json.JSONDecodeError, TypeError):
             pass
     
+    original_url = getattr(m, 'file_url', None) or getattr(m, 'url', None)
+    
+    # Read thumbnail/display URLs via raw SQL (columns may not be on ORM model)
+    thumbnail_url = getattr(m, 'thumbnail_url', None)
+    display_url = getattr(m, 'display_url', None)
+    if thumbnail_url is None and display_url is None:
+        try:
+            row = await db.execute(
+                text("SELECT thumbnail_url, display_url FROM media WHERE id = :mid"),
+                {"mid": str(m.id)}
+            )
+            r = row.fetchone()
+            if r:
+                thumbnail_url = r[0]
+                display_url = r[1]
+        except Exception:
+            pass
+
     return {
         "id": m.id,
-        "url": getattr(m, 'url', None) or getattr(m, 'file_url', None),
+        "url": display_url or original_url,
+        "thumbnail_url": thumbnail_url or display_url or original_url,
+        "original_url": original_url,
         "caption": getattr(m, 'caption', None) or metadata.get('caption'),
         "date": str(getattr(m, 'date', None) or metadata.get('date', '')) or None,
         "location": getattr(m, 'location', None) or metadata.get('location'),
@@ -87,6 +112,17 @@ async def upload_media(
     
     url = f"/uploads/media/{trip_id}/{filename}"
     
+    # Generate optimized thumbnail and display versions
+    thumbnail_url = None
+    display_url = None
+    if generate_variants:
+        try:
+            variants = generate_variants(filepath, str(trip_id), str(media_id), UPLOAD_DIR)
+            thumbnail_url = variants.get("thumbnail_url")
+            display_url = variants.get("display_url")
+        except Exception as e:
+            print(f"Image variant generation failed: {e}")
+    
     # Create media record - handle different model field names
     media_data = {
         "id": media_id,
@@ -114,6 +150,28 @@ async def upload_media(
     db.add(m)
     await db.commit()
     await db.refresh(m)
+    
+    # Set optimized image URLs via raw SQL (columns may not be on ORM model)
+    if thumbnail_url or display_url:
+        # text already imported at top
+        updates = []
+        params = {"mid": str(media_id)}
+        if thumbnail_url:
+            updates.append("thumbnail_url = :thumb")
+            params["thumb"] = thumbnail_url
+        if display_url:
+            updates.append("display_url = :disp")
+            params["disp"] = display_url
+        if updates:
+            try:
+                await db.execute(
+                    text(f"UPDATE media SET {', '.join(updates)} WHERE id = :mid"),
+                    params
+                )
+                await db.commit()
+            except Exception as e:
+                print(f"Failed to save image variant URLs: {e}")
+    
     return await serialize_media(m, db)
 
 
@@ -190,11 +248,28 @@ async def delete_media(
         raise HTTPException(403, "You can only delete your own photos")
     
     # Delete file from disk
-    url = getattr(m, 'url', None) or getattr(m, 'file_url', None)
+    url = getattr(m, 'file_url', None) or getattr(m, 'url', None)
     if url:
         filepath = url.lstrip("/")
         if os.path.exists(filepath):
             os.remove(filepath)
+    
+    # Delete optimized variants via raw SQL lookup
+    # text already imported at top
+    try:
+        row = await db.execute(
+            text("SELECT thumbnail_url, display_url FROM media WHERE id = :mid"),
+            {"mid": str(media_id)}
+        )
+        r = row.fetchone()
+        if r:
+            for variant_url in [r[0], r[1]]:
+                if variant_url:
+                    vpath = variant_url.lstrip("/")
+                    if os.path.exists(vpath):
+                        os.remove(vpath)
+    except Exception:
+        pass
     
     await db.delete(m)
     await db.commit()

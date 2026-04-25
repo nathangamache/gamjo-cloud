@@ -166,7 +166,21 @@ export default function App() {
   const [expenses, setExpenses] = useState([]);
   const [itinerary, setItinerary] = useState([]);
   const [media, setMedia] = useState([]);
-  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
+  // Detect if device is a phone (not tablet) — phones have smallest screen dimension under 600px
+  // Once identified as phone, lock to mobile layout regardless of orientation/resize
+  const isMobileDevice = useRef(
+    typeof navigator !== 'undefined' &&
+    navigator.maxTouchPoints > 0 &&
+    Math.min(window.screen.width, window.screen.height) < 600
+  );
+  const [isDesktop, setIsDesktop] = useState(() => isMobileDevice.current ? false : window.innerWidth >= 768);
+
+  // Tag the document so CSS can also lock to mobile layout
+  useEffect(() => {
+    if (isMobileDevice.current) {
+      document.documentElement.setAttribute('data-mobile', 'true');
+    }
+  }, []);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isGlobalAdmin, setIsGlobalAdmin] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
@@ -287,7 +301,7 @@ export default function App() {
     window.addEventListener('popstate', h);
     return () => window.removeEventListener('popstate', h);
   }, []);
-  useEffect(() => { const h = () => setIsDesktop(window.innerWidth >= 768); window.addEventListener('resize', h); return () => window.removeEventListener('resize', h); }, []);
+  useEffect(() => { if (isMobileDevice.current) return; const h = () => setIsDesktop(window.innerWidth >= 768); window.addEventListener('resize', h); return () => window.removeEventListener('resize', h); }, []);
   useEffect(() => {
     if (!user) return;
     api.get('/api/global-admin/check').then(r => {

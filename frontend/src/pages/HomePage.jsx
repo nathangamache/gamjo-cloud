@@ -235,7 +235,7 @@ function PolaroidStrip({ photos, navigate }) {
             boxShadow: 'var(--shadow-md)', padding: '6px 6px 8px', cursor: 'pointer',
             transform: `rotate(${rotations[i % 4]}deg)`, transition: 'transform 0.2s',
           }}>
-            <img src={p.url} alt="" style={{ width: '100%', height: 100, objectFit: 'cover', borderRadius: 4 }} />
+            <img src={p.thumbnail_url || p.url} alt="" loading="lazy" style={{ width: '100%', height: 100, objectFit: 'cover', borderRadius: 4 }} />
           </div>
         ))}
       </div>

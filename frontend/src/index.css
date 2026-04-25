@@ -1233,6 +1233,21 @@ body { font-size: 16px; }
   }
 }
 
+/* ── Mobile Device Lock ── */
+/* On phones (data-mobile), force mobile layout even in landscape */
+[data-mobile="true"] .desktop-sidebar { display: none !important; }
+[data-mobile="true"] .mobile-nav { display: flex !important; }
+[data-mobile="true"] .page-content {
+  flex: unset !important;
+  overflow-y: unset !important;
+  max-height: unset !important;
+  padding-bottom: calc(var(--nav-height) + 16px + var(--safe-bottom)) !important;
+}
+[data-mobile="true"] .app {
+  display: block !important;
+  max-width: 100% !important;
+}
+
 /* ── Accessibility Mode ── */
 /* Only override TEXT variables - NOT primary/warm/sage/danger (used for backgrounds) */
 [data-a11y="true"] {
