@@ -1,5 +1,7 @@
 # GamJo Cloud
 
+**Frontend:** [![Better Stack Badge](https://uptime.betterstack.com/status-badges/v2/monitor/2mp3m.svg)](https://uptime.betterstack.com/?utm_source=status_badge) &nbsp; **Backend:** [![Better Stack Badge](https://uptime.betterstack.com/status-badges/v2/monitor/2mp42.svg)](https://uptime.betterstack.com/?utm_source=status_badge)
+
 Private family vacation management PWA. Plan itineraries, split expenses, share photos, and vote on activities together.
 
 Built for groups who travel together annually and need a single hub instead of scattered group texts, Venmo requests, and shared Google Docs.
